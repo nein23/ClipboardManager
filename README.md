@@ -8,7 +8,7 @@ ClipboardManager is a lightweight productivity tool. It keeps track of your clip
 Features
 --------------
 
-	- Remember the last 1 to 20 clipboard entires
+	- Remembers the last 1 to 20 clipboard entries
 	- Re-copy entires to the clipboard by left-clicking them
 	- Show tooltips depending on the type of copied data
 	- Delete entries or clear the clipboard via rightclicking entries
