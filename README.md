@@ -17,30 +17,41 @@ Features
 Screenshots
 --------------
 
-1. Empty clipboard and empty history
+Empty clipboard and empty history
 
 ![Screenshot1](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/1.png)
 
-2. Text copied into clipboard
+
+Text copied into clipboard
 
 ![Screenshot2](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/2.png)
 
-3. Another text was copied. the old content is remembered
+
+Another text was copied and the old content is remembered. You can see nice tooltips showing the whole data
 
 ![Screenshot3](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/3.png)
 
-4. Images have a nice tooltip providing a preview
+
+Images have a nice tooltip providing a preview
 
 ![Screenshot4](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/4.png)
 
-5. Copied some files and folders
+
+Copied some files and folders
 
 ![Screenshot5](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/5.png)
 
-6. The right-click context menu
- 
+
+With a growing history the notify icon "grows" aswell
+
 ![Screenshot6](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/6.png)
 
-7. The Settings
 
+The right-click context menu
+ 
 ![Screenshot7](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/7.png)
+
+
+The Settings
+
+![Screenshot8](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/8.png)
