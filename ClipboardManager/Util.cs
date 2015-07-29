@@ -85,7 +85,7 @@ namespace ClipboardManager
                 Dictionary<string, object> contents = new Dictionary<string, object>();
                 foreach (string format in iData.GetFormats())
                 {
-                    if (iData.GetDataPresent(format))
+                    if (!DataFormats.MetafilePict.Equals(format) && iData.GetDataPresent(format))
                     {
                         try
                         {
