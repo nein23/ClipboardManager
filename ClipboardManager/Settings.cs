@@ -9,18 +9,26 @@ namespace ClipboardManager
         public static readonly String REG_KEY_SETTINGS = @"Software\KaeDoWare\" + ClipboardManager.APPLICATION_NAME;
         public static readonly String REG_KEY_SETTINGS_NUM_HISTORY = "NumHistory";
         public static readonly String REG_KEY_SETTINGS_STORE_AT_CLEAR = "StoreAtClear";
+        public static readonly String REG_KEY_SETTINGS_LIFE_TIME_ENABLED = "LifeTimeEnabled";
+        public static readonly String REG_KEY_SETTINGS_LIFE_TIME_VALUE = "LifeTimeValue";
         public static readonly String REG_KEY_WIN_AUTOSTART = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
         public static readonly String REG_KEY_WIN_AUTOSTART_VALUE = "\"" + Assembly.GetExecutingAssembly().Location + "\"";
         public static readonly int DEFAULT_NUM_HISTORY = 10;
         public static readonly bool DEFAULT_STORE_AT_CLEAR = false;
+        public static readonly bool DEFAULT_LIFE_TIME_ENABLED = false;
+        public static readonly int DEFAULT_LIFE_TIME_VALUE = 5;
 
         private bool autostart;
         private int numHistory;
         private bool storeAtClear;
+        private bool lifeTimeEnabled;
+        private int lifeTimeValue;
 
-        public bool Autostart { get { return autostart; } set { setAutostart(value); } }
-        public int NumHistory { get { return numHistory; } set { setNumHistory(value); } }
-        public bool StoreAtClear { get { return storeAtClear; } set { setStoreAtClear(value); } }
+        internal bool Autostart { get { return autostart; } set { setAutostart(value); } }
+        internal int NumHistory { get { return numHistory; } set { setNumHistory(value); } }
+        internal bool StoreAtClear { get { return storeAtClear; } set { setStoreAtClear(value); } }
+        internal bool LifeTimeEnabled { get { return lifeTimeEnabled; } set { setLifeTimeEnabled(value); } }
+        internal int LifeTimeValue { get { return lifeTimeValue; } set { setLifeTimeValue(value); } }
 
         public Settings()
         {
@@ -28,6 +36,8 @@ namespace ClipboardManager
             loadAutostart();
             loadNumHistory();
             loadStoreAtClear();
+            loadLifeTimeEnabled();
+            loadLifeTimeValue();
         }
 
         private void cleanUp()
@@ -44,6 +54,8 @@ namespace ClipboardManager
                 }
             }
         }
+
+        #region Load
 
         private void loadAutostart()
         {
@@ -96,16 +108,44 @@ namespace ClipboardManager
             else storeAtClear = DEFAULT_STORE_AT_CLEAR;
         }
 
-        private RegistryKey getSettingsRegKey(bool writeAccess)
+        private void loadLifeTimeEnabled()
         {
-            RegistryKey regKey = Registry.CurrentUser.OpenSubKey(REG_KEY_SETTINGS, true);
-            if (regKey == null)
+            RegistryKey regKey = getSettingsRegKey(true);
+            if (regKey != null)
             {
-                regKey = Registry.CurrentUser.CreateSubKey(REG_KEY_SETTINGS);
-                regKey = Registry.CurrentUser.OpenSubKey(REG_KEY_SETTINGS, writeAccess);
+                Object value = regKey.GetValue(REG_KEY_SETTINGS_LIFE_TIME_ENABLED);
+                if (value != null && value.GetType() == typeof(Int32))
+                {
+                    int val = (int)value;
+                    if (val == 0) lifeTimeEnabled = false;
+                    else lifeTimeEnabled = true;
+                }
+                else lifeTimeEnabled = DEFAULT_LIFE_TIME_ENABLED;
             }
-            return regKey;
+            else lifeTimeEnabled = DEFAULT_LIFE_TIME_ENABLED;
         }
+
+        private void loadLifeTimeValue()
+        {
+            RegistryKey regKey = getSettingsRegKey(true);
+            if (regKey != null)
+            {
+                Object value = regKey.GetValue(REG_KEY_SETTINGS_LIFE_TIME_VALUE);
+                if (value != null && value.GetType() == typeof(Int32))
+                {
+                    int val = (int)value;
+                    if (val >= 1 && val <= 60) lifeTimeValue = val;
+                    else lifeTimeValue = DEFAULT_LIFE_TIME_VALUE;
+                }
+                else lifeTimeValue = DEFAULT_LIFE_TIME_VALUE;
+            }
+            else lifeTimeValue = DEFAULT_LIFE_TIME_VALUE;
+        }
+
+        #endregion
+
+        #region Save
+
         private void setAutostart(bool enable)
         {
             if (enable)
@@ -131,6 +171,33 @@ namespace ClipboardManager
             loadStoreAtClear();
         }
 
+        private void setLifeTimeEnabled(bool enable)
+        {
+            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_LIFE_TIME_ENABLED, enable ? 1 : 0);
+            loadLifeTimeEnabled();
+        }
+
+        private void setLifeTimeValue(int num)
+        {
+            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_LIFE_TIME_VALUE, num);
+            loadLifeTimeValue();
+        }
+
+        #endregion
+
+        #region Helper
+
+        private RegistryKey getSettingsRegKey(bool writeAccess)
+        {
+            RegistryKey regKey = Registry.CurrentUser.OpenSubKey(REG_KEY_SETTINGS, true);
+            if (regKey == null)
+            {
+                regKey = Registry.CurrentUser.CreateSubKey(REG_KEY_SETTINGS);
+                regKey = Registry.CurrentUser.OpenSubKey(REG_KEY_SETTINGS, writeAccess);
+            }
+            return regKey;
+        }
+
         private void setCurUserRegValue(string key, string name, object value)
         {
             RegistryKey regKey = Registry.CurrentUser.OpenSubKey(key, true);
@@ -146,10 +213,12 @@ namespace ClipboardManager
             RegistryKey regKey = Registry.CurrentUser.OpenSubKey(key, true);
             if (regKey != null)
             {
-                if(regKey.GetValue(name) != null)
-                try { regKey.DeleteValue(name); }
-                catch { }
+                if (regKey.GetValue(name) != null)
+                    try { regKey.DeleteValue(name); }
+                    catch { }
             }
         }
+
+        #endregion
     }
 }

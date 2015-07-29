@@ -18,14 +18,21 @@ namespace ClipboardManager
             checkBoxAutostart.Checked = settings.Autostart;
             checkBoxStoreAtClear.Checked = settings.StoreAtClear;
             numericUpDownNumHistory.Value = settings.NumHistory;
+            checkBoxLifeTime.Checked = settings.LifeTimeEnabled;
+            numericUpDownLifeTime.Value = settings.LifeTimeValue;
         }
 
         private void buttonSave_Click(object sender, EventArgs e)
         {
+            bool lifeTimeSettingsChanged = settings.LifeTimeEnabled != checkBoxLifeTime.Checked 
+                || settings.LifeTimeValue != Convert.ToInt32(numericUpDownLifeTime.Value);
             settings.Autostart = checkBoxAutostart.Checked;
             settings.StoreAtClear = checkBoxStoreAtClear.Checked;
             settings.NumHistory = Convert.ToInt32(numericUpDownNumHistory.Value);
-            ccm.machtsHistorySettings();
+            settings.LifeTimeEnabled = checkBoxLifeTime.Checked;
+            settings.LifeTimeValue = Convert.ToInt32(numericUpDownLifeTime.Value);
+            ccm.clearHistory(settings.NumHistory);
+            if (lifeTimeSettingsChanged) ccm.lifeTimeSettingsChanged();
             this.Close();
         }
 

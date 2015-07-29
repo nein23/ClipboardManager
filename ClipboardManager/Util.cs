@@ -13,7 +13,7 @@ namespace ClipboardManager
     {
         private static readonly int maxImg = 400;
 
-        public static string getStringPreview(string str, int length, bool showLineStart)
+        internal static string getStringPreview(string str, int length, bool showLineStart)
         {
             string preview = null;
             if (str != null)
@@ -35,7 +35,7 @@ namespace ClipboardManager
             return preview;
         }
 
-        public static string createToolTip(string[] strArr, int width, int height, bool showLineBegin)
+        internal static string createToolTip(string[] strArr, int width, int height, bool showLineBegin)
         {
             bool empty = true;
             for (int i = 0; i < strArr.Length; i++)
@@ -78,7 +78,7 @@ namespace ClipboardManager
             return toolTip;
         }
 
-        public static Dictionary<string, object> getContents(IDataObject iData)
+        internal static Dictionary<string, object> getContents(IDataObject iData)
         {
             if (iData != null)
             {
@@ -100,11 +100,12 @@ namespace ClipboardManager
             return null;
         }
 
-        public static Tuple<string, string, Image> getItemData(IDataObject iData)
+        internal static Tuple<string, Image, string, Image> getItemData(IDataObject iData)
         {
             string text = null;
-            string toolTip = null;
             Image image = null;
+            string toolTip = null;
+            Image toolTipImage = null;
             if (iData != null)
             {
                 bool audio = false;
@@ -156,17 +157,19 @@ namespace ClipboardManager
                 else if (img)
                 {
 
-                    image = Clipboard.GetImage();
-                    image = scaleImage(image, maxImg, maxImg);
-                    if (image != null)
+                    Image originalImage = Clipboard.GetImage();
+                    if (originalImage != null)
                     {
-                        text = "Image - " + image.Width + " x " + image.Height + " " + image.PixelFormat;
+                        image = scaleImage(originalImage, 16, 16);
+                        toolTipImage = scaleImage(originalImage, maxImg, maxImg);
+                        if (image != null)
+                        {
+                            text = "Image - " + originalImage.Width + " x " + originalImage.Height + " " + originalImage.PixelFormat;
+                        }
                     }
-                    else
-                    {
-                        text = "Image";
-                        if (image == null) image = Resources.image;
-                    }
+                    if (text == null) text = "Image";
+                    if (image == null) image = Resources.image;
+                    toolTip = "Image";
                 }
                 else if (audio)
                 {
@@ -179,10 +182,10 @@ namespace ClipboardManager
                     image = Resources.help;
                 }
             }
-            return new Tuple<string, string, Image>(text, toolTip, image);
+            return new Tuple<string, Image, string, Image>(text, image, toolTip, toolTipImage);
         }
 
-        public static Image scaleImage(Image image, int maxW, int maxH)
+        internal static Image scaleImage(Image image, int maxW, int maxH)
         {
             int w = image.Width;
             int h = image.Height;

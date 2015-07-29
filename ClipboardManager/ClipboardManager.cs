@@ -150,7 +150,7 @@ namespace ClipboardManager
 
         private void clearHistory_Click(object sender, EventArgs e)
         {
-            leftContextMenu.clearHistory();
+            leftContextMenu.clearHistory(0);
         }
 
         private void settings_Click(object sender, EventArgs e)

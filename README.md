@@ -3,15 +3,16 @@
 Description
 --------------
 
-ClipboardManager is a lightweight productivity tool. It keeps track of your clipboard changes and remembers the last clipboard entries for you. Via the left-click context menu of the notify icon you can re-copy the last clipboard entries into the clipboard again. This can be very usefull in every environment where you rapidly copy and paste data. The settings and some other usefull things can be accessed vie the right-click context menu.
+ClipboardManager is a lightweight productivity tool that keeps track of your clipboard changes and remembers the last clipboard entries for you. Via the left-click context menu of the notify icon you can re-copy the last clipboard entries into the clipboard again. This can be very useful in every environment where you rapidly copy and paste data. The settings and some other useful things can be accessed via the right-click context menu.
 
 Features
 --------------
 
-	- Remembers the last 1 to 20 clipboard entries
+	- Remembers up to 20 clipboard entries
 	- Re-copy entires to the clipboard by left-clicking them
 	- Show tooltips depending on the type of copied data
-	- Delete entries or clear the clipboard via rightclicking entries
+	- Delete entries or clear the clipboard via right-clicking entries
+	- Automatically remove remembered entries after a defined time
 	- Windows autostart
 
 Screenshots

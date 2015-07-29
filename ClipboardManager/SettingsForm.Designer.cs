@@ -35,8 +35,11 @@
             this.buttonCancel = new System.Windows.Forms.Button();
             this.labelNumHistory = new System.Windows.Forms.Label();
             this.panel = new System.Windows.Forms.Panel();
+            this.numericUpDownLifeTime = new System.Windows.Forms.NumericUpDown();
+            this.checkBoxLifeTime = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownNumHistory)).BeginInit();
             this.panel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownLifeTime)).BeginInit();
             this.SuspendLayout();
             // 
             // checkBoxAutostart
@@ -67,7 +70,7 @@
             this.numericUpDownNumHistory.TabIndex = 2;
             this.numericUpDownNumHistory.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.numericUpDownNumHistory.Value = new decimal(new int[] {
-            1,
+            10,
             0,
             0,
             0});
@@ -88,10 +91,10 @@
             this.buttonSave.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.buttonSave.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.buttonSave.Image = global::ClipboardManager.Properties.Resources.save;
-            this.buttonSave.Location = new System.Drawing.Point(67, 84);
+            this.buttonSave.Location = new System.Drawing.Point(71, 110);
             this.buttonSave.Name = "buttonSave";
             this.buttonSave.Size = new System.Drawing.Size(58, 23);
-            this.buttonSave.TabIndex = 3;
+            this.buttonSave.TabIndex = 5;
             this.buttonSave.Text = "Save";
             this.buttonSave.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.buttonSave.UseVisualStyleBackColor = true;
@@ -103,10 +106,10 @@
             this.buttonCancel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.buttonCancel.Image = global::ClipboardManager.Properties.Resources.cancel;
-            this.buttonCancel.Location = new System.Drawing.Point(131, 84);
+            this.buttonCancel.Location = new System.Drawing.Point(135, 110);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(66, 23);
-            this.buttonCancel.TabIndex = 4;
+            this.buttonCancel.TabIndex = 6;
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.buttonCancel.UseVisualStyleBackColor = true;
@@ -123,6 +126,8 @@
             // 
             // panel
             // 
+            this.panel.Controls.Add(this.numericUpDownLifeTime);
+            this.panel.Controls.Add(this.checkBoxLifeTime);
             this.panel.Controls.Add(this.checkBoxAutostart);
             this.panel.Controls.Add(this.labelNumHistory);
             this.panel.Controls.Add(this.numericUpDownNumHistory);
@@ -132,8 +137,41 @@
             this.panel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel.Location = new System.Drawing.Point(0, 0);
             this.panel.Name = "panel";
-            this.panel.Size = new System.Drawing.Size(209, 119);
+            this.panel.Size = new System.Drawing.Size(213, 145);
             this.panel.TabIndex = 6;
+            // 
+            // numericUpDownLifeTime
+            // 
+            this.numericUpDownLifeTime.Location = new System.Drawing.Point(161, 84);
+            this.numericUpDownLifeTime.Maximum = new decimal(new int[] {
+            60,
+            0,
+            0,
+            0});
+            this.numericUpDownLifeTime.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numericUpDownLifeTime.Name = "numericUpDownLifeTime";
+            this.numericUpDownLifeTime.Size = new System.Drawing.Size(40, 20);
+            this.numericUpDownLifeTime.TabIndex = 4;
+            this.numericUpDownLifeTime.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.numericUpDownLifeTime.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // checkBoxLifeTime
+            // 
+            this.checkBoxLifeTime.AutoSize = true;
+            this.checkBoxLifeTime.Location = new System.Drawing.Point(12, 85);
+            this.checkBoxLifeTime.Name = "checkBoxLifeTime";
+            this.checkBoxLifeTime.Size = new System.Drawing.Size(143, 17);
+            this.checkBoxLifeTime.TabIndex = 3;
+            this.checkBoxLifeTime.Text = "History lifetime in minutes";
+            this.checkBoxLifeTime.UseVisualStyleBackColor = true;
             // 
             // SettingsForm
             // 
@@ -141,7 +179,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.buttonCancel;
-            this.ClientSize = new System.Drawing.Size(209, 119);
+            this.ClientSize = new System.Drawing.Size(213, 145);
             this.Controls.Add(this.panel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -151,6 +189,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownNumHistory)).EndInit();
             this.panel.ResumeLayout(false);
             this.panel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownLifeTime)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -164,5 +203,7 @@
         private System.Windows.Forms.Button buttonCancel;
         private System.Windows.Forms.Label labelNumHistory;
         private System.Windows.Forms.Panel panel;
+        private System.Windows.Forms.NumericUpDown numericUpDownLifeTime;
+        private System.Windows.Forms.CheckBox checkBoxLifeTime;
     }
 }

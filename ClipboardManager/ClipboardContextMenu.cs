@@ -20,8 +20,6 @@ namespace ClipboardManager
 
         private NotifyIcon ni;
         private Settings settings;
-        private ToolTip toolTip = new ToolTip();
-        private Image toolTipImage = null;
 
         #endregion
 
@@ -39,50 +37,12 @@ namespace ClipboardManager
             Items.Add(historyEmptyItem);
         }
 
-        private void toolTip_Draw(object sender, DrawToolTipEventArgs e)
-        {
-            // Draw the background and border.
-            e.DrawBackground();
-            e.DrawBorder();
-
-            if (toolTipImage != null)
-            {
-                // Draw the image.
-                e.Graphics.DrawImage(toolTipImage, 1, 1);
-            }
-            else
-            {
-                // Draw the text.
-                using (StringFormat sf = new StringFormat())
-                {
-                    sf.Alignment = StringAlignment.Near;
-                    sf.LineAlignment = StringAlignment.Center;
-
-                    Rectangle rect = new Rectangle(5, 5, e.Bounds.Width, e.Bounds.Height);
-                    e.Graphics.DrawString( e.ToolTipText, e.Font, Brushes.Black, rect, sf);
-                }
-            }
-        }
-
-        private void toolTip_Popup(object sender, PopupEventArgs e)
-        {
-            int wid = e.ToolTipSize.Width + 10;
-            int hgt = e.ToolTipSize.Height + 10;
-            if (toolTipImage != null)
-            {
-                wid = toolTipImage.Width + 2;
-                hgt = toolTipImage.Height + 2;
-            }
-            e.ToolTipSize = new Size(wid, hgt);
-        }
-
         #endregion
 
         #region Methods
 
-        public void update()
+        internal void update()
         {
-            ToolStripMenuItem item = new ToolStripMenuItem();
             IDataObject iData = Clipboard.GetDataObject();
             Dictionary<string, object> contents = Util.getContents(iData);
             if (contents.Count == 0)
@@ -90,19 +50,18 @@ namespace ClipboardManager
                 setClipboardItem(null);
                 return;
             }
-            Tuple<string, string, Image> itemData = Util.getItemData(iData);
-            item.Text = itemData.Item1;
-            item.ToolTipText = itemData.Item2;
-            item.Image = itemData.Item3;
-            item.Tag = contents;
-            item.AutoToolTip = false;
+            Tuple<string, Image, string, Image> itemData = Util.getItemData(iData);
+            ClipboardToolStripMenuItem item = new ClipboardToolStripMenuItem(
+                itemData.Item1,
+                itemData.Item2,
+                contents,
+                itemData.Item3,
+                itemData.Item4);
             item.MouseUp += item_MouseUpRight;
-            item.MouseEnter += item_MouseEnter;
-            item.MouseLeave += item_MouseLeave;
             setClipboardItem(item);
         }
 
-        public void setClipboardItem(ToolStripMenuItem clipboardItem)
+        private void setClipboardItem(ClipboardToolStripMenuItem clipboardItem)
         {
             ToolStripItem cur = Items[0];
             if (clipboardItem == null)
@@ -110,40 +69,44 @@ namespace ClipboardManager
                 if (isClipboardEmptyItem(cur)) return;
                 Items.RemoveAt(0);
                 Items.Insert(0, clipboardEmptyItem);
-                if (settings.StoreAtClear) addHistoryItem(cur);
+                if (settings.StoreAtClear && cur is ClipboardToolStripMenuItem) addHistoryItem(cur as ClipboardToolStripMenuItem);
                 else if (cur != null) cur.Dispose();
             }
             else
             {
                 Items.Remove(cur);
                 Items.Insert(0, clipboardItem);
-                if (!isClipboardEmptyItem(cur)) addHistoryItem(cur);
+                if (cur is ClipboardToolStripMenuItem) addHistoryItem(cur as ClipboardToolStripMenuItem);
             }
         }
 
-        public void removeItem(ToolStripItem item)
+        private void removeItem(ClipboardToolStripMenuItem item)
         {
-            if (item != null && !isEmptyItem(item))
+            if (item != null)
             {
-                toolTip.Hide(item.Owner);
+                item.ToolTip.Hide(item.Owner);
                 if (isHistoryItem(item)) removeHistoryItem(item);
                 else Clipboard.Clear();
             }
         }
 
-        public void addHistoryItem(ToolStripItem historyItem)
+        private void addHistoryItem(ClipboardToolStripMenuItem historyItem)
         {
             Items.Remove(historyEmptyItem);
             Items.Insert(2, historyItem);
             historyItem.MouseUp += item_MouseUpLeft;
+            historyItem.Date = DateTime.Now;
+            historyItem.LifeTimeTimer.Tick += lifeTimeTimer_Tick;
+            if (settings.LifeTimeEnabled) historyItem.LifeTimeTimer.Start();
             while (isHistoryOverFilled()) Items.RemoveAt(Items.Count - 1);
             updateNotifyIcon();
         }
 
-        public bool removeHistoryItem(ToolStripItem historyItem)
+        private bool removeHistoryItem(ClipboardToolStripMenuItem historyItem)
         {
             if(isHistoryItem(historyItem))
             {
+                historyItem.LifeTimeTimer.Stop();
                 Items.Remove(historyItem);
                 if (Items.Count == 2) Items.Add(historyEmptyItem);
                 updateNotifyIcon();
@@ -152,44 +115,26 @@ namespace ClipboardManager
             return false;
         }
 
-        public void clearHistory()
+        internal void clearHistory(int historySize)
         {
-            while (Items.Count > 2)
+            while (Items.Count > historySize + 2)
             {
                 ToolStripItem item = Items[Items.Count - 1];
-                if (!removeHistoryItem(item)) break;
+                if (isHistoryItem(item)) removeHistoryItem(item as ClipboardToolStripMenuItem);
+                else break;
             }
             if (Items.Count == 2) Items.Add(historyEmptyItem);
             updateNotifyIcon();
         }
 
-        public void machtsHistorySettings()
+        private bool isHistoryItem(ToolStripItem item)
         {
-            while (Items.Count > settings.NumHistory + 2)
-            {
-                ToolStripItem item = Items[Items.Count - 1];
-                if (!removeHistoryItem(item)) break;
-            }
-        }
-
-        public bool isHistoryItem(ToolStripItem item)
-        {
-            return (item != null && item is ToolStripMenuItem && !isEmptyItem(item) && Items.IndexOf(item) >= 2);
-        }
-
-        private bool isEmptyItem(ToolStripItem item) 
-        {
-            return (isClipboardEmptyItem(item) || isHistoryEmptyItem(item));
+            return (item != null && item is ClipboardToolStripMenuItem && Items.IndexOf(item) >= 2);
         }
 
         private bool isClipboardEmptyItem(ToolStripItem item)
         {
             return (item != null && item is ToolStripMenuItem && clipboardEmptyItem.Equals(item));
-        }
-
-        private bool isHistoryEmptyItem(ToolStripItem item)
-        {
-            return (item != null && item is ToolStripMenuItem && historyEmptyItem.Equals(item));
         }
 
         private bool isHistoryOverFilled()
@@ -211,30 +156,44 @@ namespace ClipboardManager
             }
         }
 
+        internal void lifeTimeSettingsChanged()
+        {
+            foreach (ToolStripItem item in Items)
+            {
+                if (isHistoryItem(item))
+                {
+                    DateTime now = DateTime.Now;
+                    ClipboardToolStripMenuItem citem = item as ClipboardToolStripMenuItem;
+                    citem.LifeTimeTimer.Stop();
+                    if (settings.LifeTimeEnabled)
+                    {
+                        citem.Date = now;
+                        citem.LifeTimeTimer.Start();
+                    }
+                }
+            }
+        }
+
         #endregion
 
         #region Handler
 
         private void item_MouseUpRight(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right && sender is ToolStripMenuItem)
+            if (e.Button == MouseButtons.Right && sender is ClipboardToolStripMenuItem)
             {
-                ToolStripMenuItem item = sender as ToolStripMenuItem;
-                if (item.Tag != null)
-                {
-                    removeItem(item);
-                }
+                removeItem(sender as ClipboardToolStripMenuItem);
             }
         }
 
         private void item_MouseUpLeft(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left && sender is ToolStripMenuItem)
+            if (e.Button == MouseButtons.Left && sender is ClipboardToolStripMenuItem)
             {
-                ToolStripMenuItem item = sender as ToolStripMenuItem;
-                if (item.Tag != null && isHistoryItem(item) && item.Tag is Dictionary<string, object>)
+                ClipboardToolStripMenuItem item = sender as ClipboardToolStripMenuItem;
+                if (item != null)
                 {
-                    Dictionary<string, object> contents = (Dictionary<string, object>)item.Tag;
+                    Dictionary<string, object> contents = item.Data;
                     if (contents != null)
                     {
                         IDataObject iData = new DataObject();
@@ -253,39 +212,21 @@ namespace ClipboardManager
             }
         }
 
-        private void item_MouseEnter(object sender, EventArgs e)
+        private void lifeTimeTimer_Tick(object sender, EventArgs e)
         {
-            toolTip.Dispose();
-            toolTip = new ToolTip();
-            ToolStripMenuItem item = sender as ToolStripMenuItem;
-            string toolTipStr = item.ToolTipText;
-            int itemHeight = item.Bounds.Height;
-            int yOffSet = 0;
-            int index = Items.IndexOf(item);
-            if (toolTipStr != null)
-            {
-                string[] split = toolTipStr.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
-                int numLines = split.Length;
-                yOffSet = -1 * (5+(numLines * 15));
+            if(sender != null && sender is Timer) {
+                Timer timer = sender as Timer;
+                if (timer.Tag != null && timer.Tag is ClipboardToolStripMenuItem)
+                {
+                    ClipboardToolStripMenuItem item = timer.Tag as ClipboardToolStripMenuItem;
+                    DateTime end = item.Date.AddMinutes(settings.LifeTimeValue);
+                    if (settings.LifeTimeEnabled && DateTime.Now.CompareTo(end) >= 0)
+                    {
+                        timer.Stop();
+                        removeItem(item);
+                    }
+                }
             }
-            else
-            {
-                toolTip.OwnerDraw = true;
-                toolTip.Popup += toolTip_Popup;
-                toolTip.Draw += toolTip_Draw;
-                toolTipImage = item.Image;
-                toolTipStr = "empty";
-                int imgheight = toolTipImage.Height;
-                yOffSet = -1 * (imgheight+2);
-            }
-            toolTip.Show(toolTipStr, item.Owner, item.Bounds.X, yOffSet);
-        }
-
-        private void item_MouseLeave(object sender, EventArgs e)
-        {
-            ToolStripMenuItem item = sender as ToolStripMenuItem;
-            toolTip.Hide(item.Owner);
-            toolTipImage = null;
         }
 
         #endregion
