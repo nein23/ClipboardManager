@@ -50,8 +50,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>
-    </ApplicationIcon>
+    <ApplicationIcon>clipboard_2_64.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -113,6 +112,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="clipboard_2_64.ico" />
     <Content Include="Resources\clipboard_0_32.ico" />
     <Content Include="Resources\clipboard_1_32.ico" />
     <Content Include="Resources\clipboard_2_32.ico" />
