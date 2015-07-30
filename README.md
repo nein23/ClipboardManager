@@ -17,6 +17,7 @@ Features
 	- Show tooltips depending on the type of copied data
 	- Delete entries or clear the clipboard via right-clicking entries
 	- Automatically remove remembered entries after a defined time
+	- Pause and continue the clipboard tracking whenever you want to
 	- Windows autostart
 
 Screenshots

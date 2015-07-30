@@ -16,6 +16,9 @@ namespace ClipboardManager
         private ContextMenuStrip rightContextMenu;
         private IntPtr nextClipboardViewer;
         private readonly Timer clipboardChangedTimer = new Timer();
+        private bool pause = false;
+
+        #region Init
 
         public ClipboardManager()
         {
@@ -25,15 +28,6 @@ namespace ClipboardManager
             initClipboardHook();
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            ChangeClipboardChain(this.Handle, nextClipboardViewer);
-            if (clipboardChangedTimer != null) clipboardChangedTimer.Stop();
-            ni.Dispose();
-            base.Dispose(disposing);
-        }
-
-        #region Init
         private void init()
         {
             this.Name = "ClipboardManager";
@@ -67,6 +61,12 @@ namespace ClipboardManager
             item.Click += clearHistory_Click;
             rightContextMenu.Items.Add(item);
             item = new ToolStripMenuItem();
+            item.Text = "Pause";
+            item.Checked = false;
+            item.CheckOnClick = true;
+            item.Click += pause_Click;
+            rightContextMenu.Items.Add(item);
+            item = new ToolStripMenuItem();
             item.Text = "Settings";
             item.Image = Resources.settings;
             item.Click += settings_Click;
@@ -96,6 +96,14 @@ namespace ClipboardManager
 
         #region Methods
 
+        protected override void Dispose(bool disposing)
+        {
+            ChangeClipboardChain(this.Handle, nextClipboardViewer);
+            if (clipboardChangedTimer != null) clipboardChangedTimer.Stop();
+            ni.Dispose();
+            base.Dispose(disposing);
+        }
+
         protected override void WndProc(ref System.Windows.Forms.Message m)
         {
             // defined in winuser.h
@@ -105,7 +113,7 @@ namespace ClipboardManager
             switch (m.Msg)
             {
                 case WM_DRAWCLIPBOARD:
-                    if (!clipboardChangedTimer.Enabled) clipboardChangedTimer.Start();
+                    if (!pause && !clipboardChangedTimer.Enabled) clipboardChangedTimer.Start();
                     SendMessage(nextClipboardViewer, m.Msg, m.WParam, m.LParam);
                     break;
 
@@ -151,6 +159,11 @@ namespace ClipboardManager
         private void clearHistory_Click(object sender, EventArgs e)
         {
             leftContextMenu.clearHistory(0);
+        }
+
+        private void pause_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem) pause = (sender as ToolStripMenuItem).Checked;
         }
 
         private void settings_Click(object sender, EventArgs e)

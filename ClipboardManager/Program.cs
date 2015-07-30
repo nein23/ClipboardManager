@@ -7,7 +7,7 @@ namespace ClipboardManager
 {
     static class Program
     {
-        private static Mutex mutex = new Mutex(true, Assembly.GetExecutingAssembly().GetType().GUID.ToString());
+        private static Mutex mutex = new Mutex(true, "3d0c2cac-9a6a-4608-846f-04c94f001260");
 
         [STAThread]
         private static void Main(string[] args)
