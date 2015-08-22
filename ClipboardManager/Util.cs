@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -12,6 +13,15 @@ namespace ClipboardManager
     class Util
     {
         private static readonly int maxImg = 400;
+        
+        public enum KeyModifier
+        {
+            None = 0,
+            Alt = 1,
+            Control = 2,
+            Shift = 4,
+            WinKey = 8
+        }
 
         internal static string getStringPreview(string str, int length, bool showLineStart)
         {
@@ -100,28 +110,63 @@ namespace ClipboardManager
             return null;
         }
 
-        internal static Tuple<string, Image, string, Image> getItemData(IDataObject iData)
+        internal static Tuple<string, Image, string, Image, int> getItemData(IDataObject iData)
         {
             string text = null;
             Image image = null;
             string toolTip = null;
             Image toolTipImage = null;
+            int type = -1;
             if (iData != null)
             {
                 bool audio = false;
                 bool fdl = false;
                 bool img = false;
                 bool txt = false;
+                bool unknown = false;
                 int found = 0;
                 if (Clipboard.ContainsAudio()) { found += 1; audio = true; }
                 if (Clipboard.ContainsFileDropList()) { found += 1; fdl = true; }
                 if (Clipboard.ContainsImage()) { found += 1; img = true; }
                 if (Clipboard.ContainsText()) { found += 1; txt = true; }
-
+                if(found == 0) { found += 1; unknown = true; }
                 if (found > 1)
                 {
-                    text = "Multiple Formats";
-                    image = Resources.help;
+                    text = "Multiple Data: "
+                        + (txt ? "Text" : "") + " | "
+                        + (fdl ? "Files/Folders" : "") + " | "
+                        + (img ? "Image" : "") + " | "
+                        + (audio ? "Audio Data" : "") + " | "
+                        + (unknown ? "Unknown Data" : "");
+                    text = text.TrimEnd(new char[] { ' ', '|' });
+                    image = Resources.multi;
+                    type = ClipboardToolStripMenuItem.TYPE_MULTI;
+                    if (img)
+                    {
+                        Image originalImage = null;
+                        if (iData.GetDataPresent(DataFormats.Dib))
+                        {
+                            byte[] dib = ((System.IO.MemoryStream)iData.GetData(DataFormats.Dib)).ToArray();
+                            originalImage = byteToBmp(dib);
+                        }
+                        if (originalImage == null) originalImage = Clipboard.GetImage();
+
+                        if (originalImage != null)
+                        {
+                            toolTipImage = scaleImage(originalImage, maxImg, maxImg);
+                        }
+                    }
+                    else if (iData.GetDataPresent(DataFormats.Text))
+                    {
+                        string data = iData.GetData(DataFormats.Text) as string;
+                        string[] split = data.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
+                        toolTip = Util.createToolTip(split, 50, 20, true);
+                    }
+                    else if (iData.GetDataPresent(DataFormats.FileDrop))
+                    {
+                        string[] files = iData.GetData(DataFormats.FileDrop) as string[];
+                        toolTip = Util.createToolTip(files, 50, 20, false);
+                    }
                 }
                 else if (txt)
                 {
@@ -136,8 +181,9 @@ namespace ClipboardManager
                             toolTip = Util.createToolTip(split, 50, 20, true);
                         }
                     }
-                    if(text == null) text = "Text";
+                    if (text == null) text = "Text";
                     image = Resources.txt;
+                    type = ClipboardToolStripMenuItem.TYPE_TEXT;
                 }
                 else if (fdl)
                 {
@@ -153,11 +199,19 @@ namespace ClipboardManager
                     }
                     if (text == null) text = "Files/Folders";
                     image = Resources.fileFolder;
+                    type = ClipboardToolStripMenuItem.TYPE_FILES;
                 }
                 else if (img)
                 {
+                    Image originalImage = null;
+                    if (iData.GetDataPresent(DataFormats.Dib))
+                    {
+                        byte[] dib = ((System.IO.MemoryStream)iData.GetData(DataFormats.Dib)).ToArray();
+                        originalImage = byteToBmp(dib);
+                    }
 
-                    Image originalImage = Clipboard.GetImage();
+                    if (originalImage == null) originalImage = Clipboard.GetImage();
+
                     if (originalImage != null)
                     {
                         image = scaleImage(originalImage, 16, 16);
@@ -170,19 +224,22 @@ namespace ClipboardManager
                     if (text == null) text = "Image";
                     if (image == null) image = Resources.image;
                     toolTip = "Image";
+                    type = ClipboardToolStripMenuItem.TYPE_IMAGES;
                 }
                 else if (audio)
                 {
-                    text = "Audiostream";
+                    text = "Audio Data";
                     image = Resources.speaker;
+                    type = ClipboardToolStripMenuItem.TYPE_AUDIO;
                 }
                 else
                 {
-                    text = "Unknown Data Format";
+                    text = "Unknown Data";
                     image = Resources.help;
+                    type = ClipboardToolStripMenuItem.TYPE_UNKNOWN;
                 }
             }
-            return new Tuple<string, Image, string, Image>(text, image, toolTip, toolTipImage);
+            return new Tuple<string, Image, string, Image, int>(text, image, toolTip, toolTipImage, type);
         }
 
         internal static Image scaleImage(Image image, int maxW, int maxH)
@@ -209,5 +266,37 @@ namespace ClipboardManager
             } 
             return new Bitmap(image, new Size(w, h));
         }
+
+        private static Bitmap byteToBmp(byte[] dib)
+        {
+            int width = BitConverter.ToInt32(dib, 4);
+            int height = BitConverter.ToInt32(dib, 8);
+            short bpp = BitConverter.ToInt16(dib, 14);
+            if (bpp == 32)
+            {
+                GCHandle gch = GCHandle.Alloc(dib, GCHandleType.Pinned);
+                Bitmap bmp = null;
+                try
+                {
+                    var ptr = new IntPtr((long)gch.AddrOfPinnedObject() + 40);
+                    bmp = new Bitmap(width, height, width * 4, System.Drawing.Imaging.PixelFormat.Format32bppArgb, ptr);
+                    bmp.RotateFlip(RotateFlipType.Rotate180FlipX);
+                    return new Bitmap(bmp);
+                }
+                finally
+                {
+                    gch.Free();
+                    if (bmp != null) bmp.Dispose();
+                }
+            }
+            return null;
+        }
+
+
+        [DllImport("user32.dll")]
+        internal static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
+
+        [DllImport("user32.dll")]
+        internal static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     }
 }

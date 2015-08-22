@@ -1,7 +1,7 @@
 # ClipboardManager
 
 <p align="center">
-<img alt="version" src="https://img.shields.io/badge/version-1.4-brightgreen.svg" height="20px">  <img alt="license" src="https://img.shields.io/badge/license-GNU%20GPLv3-blue.svg" height="20px">
+<img alt="version" src="https://img.shields.io/badge/version-1.5-brightgreen.svg" height="20px">  <img alt="license" src="https://img.shields.io/badge/license-GNU%20GPLv3-blue.svg" height="20px">
 </p>
 
 Description
@@ -15,9 +15,12 @@ Features
 	- Remembers up to 20 clipboard entries
 	- Re-copy entires to the clipboard by left-clicking them
 	- Show tooltips depending on the type of copied data
-	- Delete entries or clear the clipboard via right-clicking entries
+	- Delete entries via right-clicking them
 	- Automatically remove remembered entries after a defined time
-	- Pause and continue the clipboard tracking whenever you want to
+	- Pause and continue the clipboard tracking
+	- Clear the Clipboard or the entire history via the right-click contextmenu
+	- Filter the types of data you want to remember
+	- Assign a hotkey for quickaccess to the history
 	- Windows autostart
 
 Screenshots

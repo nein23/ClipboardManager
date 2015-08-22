@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace ClipboardManager
 {
-    public partial class ClipboardManager : Control
+    public partial class ClipboardManager : Form
     {
         public static readonly string APPLICATION_NAME = "Clipboard Manager";
 
@@ -14,7 +14,6 @@ namespace ClipboardManager
         private Settings settings;
         private ClipboardContextMenu leftContextMenu;
         private ContextMenuStrip rightContextMenu;
-        private IntPtr nextClipboardViewer;
         private readonly Timer clipboardChangedTimer = new Timer();
         private bool pause = false;
 
@@ -62,8 +61,7 @@ namespace ClipboardManager
             rightContextMenu.Items.Add(item);
             item = new ToolStripMenuItem();
             item.Text = "Pause";
-            item.Checked = false;
-            item.CheckOnClick = true;
+            item.Image = Resources.pause;
             item.Click += pause_Click;
             rightContextMenu.Items.Add(item);
             item = new ToolStripMenuItem();
@@ -89,16 +87,36 @@ namespace ClipboardManager
         {
             clipboardChangedTimer.Interval = 100;
             clipboardChangedTimer.Tick += clipboardChangedTimer_Tick;
-            nextClipboardViewer = (IntPtr)SetClipboardViewer((int)this.Handle);
+            this.CreateHandle();
         }
 
         #endregion
 
         #region Methods
 
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+
+            RemoveClipboardFormatListener(this.Handle);
+            Util.UnregisterHotKey(this.Handle, 0);
+
+            AddClipboardFormatListener(this.Handle);
+            if (settings != null && (settings.HK_Mod != 0 || settings.HK_Key != 0))
+            {
+                Util.RegisterHotKey(this.Handle, 0, settings.HK_Mod, settings.HK_Key);
+            }
+        }
+
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            RemoveClipboardFormatListener(this.Handle);
+            Util.UnregisterHotKey(this.Handle, 0);
+            base.OnHandleDestroyed(e);
+        }
+
         protected override void Dispose(bool disposing)
         {
-            ChangeClipboardChain(this.Handle, nextClipboardViewer);
             if (clipboardChangedTimer != null) clipboardChangedTimer.Stop();
             ni.Dispose();
             base.Dispose(disposing);
@@ -106,28 +124,34 @@ namespace ClipboardManager
 
         protected override void WndProc(ref System.Windows.Forms.Message m)
         {
-            // defined in winuser.h
-            const int WM_DRAWCLIPBOARD = 0x308;
-            const int WM_CHANGECBCHAIN = 0x030D;
+            const int WM_CLIPBOARDUPDATE = 0x031D;
+            const int WM_HOTKEY = 0x0312;
 
             switch (m.Msg)
             {
-                case WM_DRAWCLIPBOARD:
+
+                case WM_CLIPBOARDUPDATE:
                     if (!pause && !clipboardChangedTimer.Enabled) clipboardChangedTimer.Start();
-                    SendMessage(nextClipboardViewer, m.Msg, m.WParam, m.LParam);
                     break;
 
-                case WM_CHANGECBCHAIN:
-                    if (m.WParam == nextClipboardViewer)
-                        nextClipboardViewer = m.LParam;
-                    else
-                        SendMessage(nextClipboardViewer, m.Msg, m.WParam, m.LParam);
+                case WM_HOTKEY:
+
+                    openLeftClickContextMenu();
                     break;
+
 
                 default:
                     base.WndProc(ref m);
                     break;
             }
+        }
+
+        private void openLeftClickContextMenu()
+        {
+            ni.ContextMenuStrip = leftContextMenu;
+            MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
+            mi.Invoke(ni, null);
+            ni.ContextMenuStrip = rightContextMenu;
         }
 
         #endregion
@@ -138,10 +162,7 @@ namespace ClipboardManager
         {
             if (e.Button == MouseButtons.Left)
             {
-                ni.ContextMenuStrip = leftContextMenu;
-                MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
-                mi.Invoke(ni, null);
-                ni.ContextMenuStrip = rightContextMenu;
+                openLeftClickContextMenu();
             }
         }
 
@@ -163,7 +184,22 @@ namespace ClipboardManager
 
         private void pause_Click(object sender, EventArgs e)
         {
-            if (sender is ToolStripMenuItem) pause = (sender as ToolStripMenuItem).Checked;
+            if (sender is ToolStripMenuItem)
+            {
+                ToolStripMenuItem item = (ToolStripMenuItem) sender;
+                if (pause)
+                {
+                    pause = false;
+                    item.Text = "Pause";
+                    item.Image = Resources.pause;
+                }
+                else
+                {
+                    pause = true;
+                    item.Text = "Continue";
+                    item.Image = Resources.play;
+                }
+            }
         }
 
         private void settings_Click(object sender, EventArgs e)
@@ -171,7 +207,7 @@ namespace ClipboardManager
             Form settingsForm = Application.OpenForms["SettingsForm"];
             if (settingsForm == null)
             {
-                new SettingsForm(leftContextMenu, settings).Show();
+                new SettingsForm(this.Handle, leftContextMenu, settings).Show();
             }
             else settingsForm.Focus();
 
@@ -193,7 +229,7 @@ namespace ClipboardManager
             else System.Environment.Exit(1);
         }
 
-#endregion
+        #endregion
 
         #region User32.dll
 
@@ -205,6 +241,15 @@ namespace ClipboardManager
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern int SendMessage(IntPtr hwnd, int wMsg, IntPtr wParam, IntPtr lParam);
+
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool AddClipboardFormatListener(IntPtr hwnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
 
         #endregion
     }

@@ -10,24 +10,34 @@ namespace ClipboardManager
 {
     internal class ClipboardToolStripMenuItem : ToolStripMenuItem
     {
+        public static readonly int TYPE_TEXT = 0;
+        public static readonly int TYPE_FILES = 1;
+        public static readonly int TYPE_IMAGES = 2;
+        public static readonly int TYPE_AUDIO = 3;
+        public static readonly int TYPE_MULTI = 4;
+        public static readonly int TYPE_UNKNOWN = 5;
+
         Dictionary<string, object> data;
         private ToolTip toolTip;
         private Image toolTipImage;
         private int toolTipOffset;
         private Timer lifeTimeTimer;
+        private int type;
 
         internal Dictionary<string, object> Data { get { return data; } }
         internal ToolTip ToolTip { get { return toolTip; } }
         internal Timer LifeTimeTimer { get { return lifeTimeTimer; } }
         internal DateTime Date { get; set; }
+        internal int Type { get { return type; } }
 
-        internal ClipboardToolStripMenuItem(string text, Image image, Dictionary<string, object> data, string toolTipText, Image toolTipImage)
+        internal ClipboardToolStripMenuItem(string text, Image image, Dictionary<string, object> data, string toolTipText, Image toolTipImage, int type)
         {
             this.Text = text;
             this.Image = image;
             this.data = data;
             this.ToolTipText = toolTipText;
             this.toolTipImage = toolTipImage;
+            this.type = type;
 
             initToolTip();
 

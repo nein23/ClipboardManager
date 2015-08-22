@@ -35,6 +35,7 @@ namespace ClipboardManager
             Items.Add(clipboardEmptyItem);
             Items.Add(sep);
             Items.Add(historyEmptyItem);
+            update();
         }
 
         #endregion
@@ -50,13 +51,14 @@ namespace ClipboardManager
                 setClipboardItem(null);
                 return;
             }
-            Tuple<string, Image, string, Image> itemData = Util.getItemData(iData);
+            Tuple<string, Image, string, Image, int> itemData = Util.getItemData(iData);
             ClipboardToolStripMenuItem item = new ClipboardToolStripMenuItem(
                 itemData.Item1,
                 itemData.Item2,
                 contents,
                 itemData.Item3,
-                itemData.Item4);
+                itemData.Item4,
+                itemData.Item5);
             item.MouseUp += item_MouseUpRight;
             setClipboardItem(item);
         }
@@ -92,14 +94,28 @@ namespace ClipboardManager
 
         private void addHistoryItem(ClipboardToolStripMenuItem historyItem)
         {
-            Items.Remove(historyEmptyItem);
-            Items.Insert(2, historyItem);
-            historyItem.MouseUp += item_MouseUpLeft;
-            historyItem.Date = DateTime.Now;
-            historyItem.LifeTimeTimer.Tick += lifeTimeTimer_Tick;
-            if (settings.LifeTimeEnabled) historyItem.LifeTimeTimer.Start();
-            while (isHistoryOverFilled()) Items.RemoveAt(Items.Count - 1);
-            updateNotifyIcon();
+            if (!isFiltered(historyItem))
+            {
+                Items.Remove(historyEmptyItem);
+                Items.Insert(2, historyItem);
+                historyItem.MouseUp += item_MouseUpLeft;
+                historyItem.Date = DateTime.Now;
+                historyItem.LifeTimeTimer.Tick += lifeTimeTimer_Tick;
+                if (settings.LifeTimeEnabled) historyItem.LifeTimeTimer.Start();
+                while (isHistoryOverFilled()) Items.RemoveAt(Items.Count - 1);
+                updateNotifyIcon();
+            }
+        }
+
+        private bool isFiltered(ClipboardToolStripMenuItem historyItem)
+        {
+            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_TEXT) return !settings.FilterText;
+            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_FILES) return !settings.FilterFiles;
+            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_IMAGES) return !settings.FilterImages;
+            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_AUDIO) return !settings.FilterAudio;
+            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_MULTI) return !settings.FilterMulti;
+            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_UNKNOWN) return !settings.FilterUnknown;
+            return false;
         }
 
         private bool removeHistoryItem(ClipboardToolStripMenuItem historyItem)
@@ -199,12 +215,13 @@ namespace ClipboardManager
                         IDataObject iData = new DataObject();
                         foreach (string format in contents.Keys)
                         {
-                            iData.SetData(format, contents[format]);
+                            object data = contents[format];
+                            iData.SetData(format, data);
                         }
                         try
                         {
                             removeItem(item);
-                            Clipboard.SetDataObject(iData, true);
+                            Clipboard.SetDataObject(iData, false);
                         }
                         catch { }
                     }

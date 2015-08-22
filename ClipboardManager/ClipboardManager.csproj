@@ -24,7 +24,7 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.4.0.0</ApplicationVersion>
+    <ApplicationVersion>1.5.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -60,10 +60,14 @@
     <ManifestKeyFile>ClipboardManager_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
-    <GenerateManifests>true</GenerateManifests>
+    <GenerateManifests>false</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -82,9 +86,12 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ClipboardManager.cs">
-      <SubType>Component</SubType>
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="ClipboardToolStripMenuItem.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="HotkeyControl.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Program.cs" />
@@ -97,9 +104,6 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Util.cs" />
-    <EmbeddedResource Include="ClipboardManager.resx">
-      <DependentUpon>ClipboardManager.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>
@@ -109,7 +113,6 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
-    <None Include="ClipboardManager_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -132,6 +135,7 @@
     <Content Include="Resources\clipboard_2_32.ico" />
     <Content Include="Resources\clipboard_2_64.ico" />
     <Content Include="Resources\clipboard_3_32.ico" />
+    <Content Include="Resources\multi.png" />
     <Content Include="Resources\speaker.png" />
     <Content Include="Resources\cancel.png" />
     <Content Include="Resources\clipboardFull.png" />
@@ -140,6 +144,8 @@
     <Content Include="Resources\help.png" />
     <Content Include="Resources\clipboardEmpty.png" />
     <None Include="Resources\info.png" />
+    <Content Include="Resources\pause.png" />
+    <None Include="Resources\play.png" />
     <Content Include="Resources\txt.png" />
     <Content Include="Resources\fileFolder.png" />
     <Content Include="Resources\image.png" />
