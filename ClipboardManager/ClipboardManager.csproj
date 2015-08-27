@@ -69,6 +69,12 @@
   <PropertyGroup>
     <TargetZone>LocalIntranet</TargetZone>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -82,11 +88,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AboutForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AboutForm.Designer.cs">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="ClipboardContextMenu.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ClipboardManager.cs">
-      <SubType>Form</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="ClipboardToolStripMenuItem.cs">
       <SubType>Component</SubType>
@@ -103,16 +115,25 @@
     <Compile Include="SettingsForm.Designer.cs">
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="UpdateForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UpdateForm.Designer.cs">
+      <DependentUpon>UpdateForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Util.cs" />
+    <EmbeddedResource Include="AboutForm.resx">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="SettingsForm.resx">
-      <DependentUpon>SettingsForm.cs</DependentUpon>
-    </EmbeddedResource>
     <None Include="app.config" />
+    <None Include="app.manifest">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -136,6 +157,7 @@
     <Content Include="Resources\clipboard_2_64.ico" />
     <Content Include="Resources\clipboard_3_32.ico" />
     <Content Include="Resources\multi.png" />
+    <Content Include="Resources\refresh.png" />
     <Content Include="Resources\speaker.png" />
     <Content Include="Resources\cancel.png" />
     <Content Include="Resources\clipboardFull.png" />
@@ -146,6 +168,9 @@
     <None Include="Resources\info.png" />
     <Content Include="Resources\pause.png" />
     <None Include="Resources\play.png" />
+    <Content Include="Resources\info_blue.png" />
+    <Content Include="Resources\toast_exit_grey.png" />
+    <Content Include="Resources\toast_exit_white.png" />
     <Content Include="Resources\txt.png" />
     <Content Include="Resources\fileFolder.png" />
     <Content Include="Resources\image.png" />

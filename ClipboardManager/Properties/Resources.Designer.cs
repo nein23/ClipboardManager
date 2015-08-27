@@ -193,6 +193,16 @@ namespace ClipboardManager.Properties {
         /// <summary>
         ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap info_blue {
+            get {
+                object obj = ResourceManager.GetObject("info_blue", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap multi {
             get {
                 object obj = ResourceManager.GetObject("multi", resourceCulture);
@@ -223,6 +233,16 @@ namespace ClipboardManager.Properties {
         /// <summary>
         ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap refresh {
+            get {
+                object obj = ResourceManager.GetObject("refresh", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap save {
             get {
                 object obj = ResourceManager.GetObject("save", resourceCulture);
@@ -246,6 +266,26 @@ namespace ClipboardManager.Properties {
         internal static System.Drawing.Bitmap speaker {
             get {
                 object obj = ResourceManager.GetObject("speaker", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap toast_exit_grey {
+            get {
+                object obj = ResourceManager.GetObject("toast_exit_grey", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap toast_exit_white {
+            get {
+                object obj = ResourceManager.GetObject("toast_exit_white", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

@@ -6,9 +6,10 @@ using System.Windows.Forms;
 
 namespace ClipboardManager
 {
-    public partial class ClipboardManager : Form
+    public partial class ClipboardManager : Control
     {
         public static readonly string APPLICATION_NAME = "Clipboard Manager";
+        public static readonly string VERSION_URL = "https://raw.githubusercontent.com/nein23/ClipboardManager/master/version";
 
         private NotifyIcon ni;
         private Settings settings;
@@ -16,6 +17,7 @@ namespace ClipboardManager
         private ContextMenuStrip rightContextMenu;
         private readonly Timer clipboardChangedTimer = new Timer();
         private bool pause = false;
+        private Form toast;
 
         #region Init
 
@@ -68,6 +70,11 @@ namespace ClipboardManager
             item.Text = "Settings";
             item.Image = Resources.settings;
             item.Click += settings_Click;
+            rightContextMenu.Items.Add(item);
+            item = new ToolStripMenuItem();
+            item.Text = "Check for updates";
+            item.Image = Resources.refresh;
+            item.Click += update_Click;
             rightContextMenu.Items.Add(item);
             item = new ToolStripMenuItem();
             item.Text = "About";
@@ -210,17 +217,27 @@ namespace ClipboardManager
                 new SettingsForm(this.Handle, leftContextMenu, settings).Show();
             }
             else settingsForm.Focus();
+        }
 
-
-
+        private void update_Click(object sender, EventArgs e)
+        {
+            if (toast != null)
+            {
+                toast.Close();
+            }
+            Tuple<string, string> res = Util.checkForUpdate();
+            toast = new UpdateForm(res.Item1, res.Item2);
+            toast.Show();
         }
 
         private void about_Click(object sender, EventArgs e)
         {
-            Version version = Assembly.GetExecutingAssembly().GetName().Version;
-            string title = APPLICATION_NAME + " " + version.Major + "." + version.Minor;
-            string text = "Copyright \u00A9 2015 Stefan Käsdorf";
-            ni.ShowBalloonTip(5, title, text, ToolTipIcon.Info);
+            if(toast != null)
+            {
+                toast.Close();
+            }
+            toast = new AboutForm();
+            toast.Show();
         }
 
         private void exit_Click(object sender, EventArgs e)

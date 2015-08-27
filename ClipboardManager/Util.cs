@@ -2,10 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
+using System.Net;
+using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ClipboardManager
@@ -263,7 +262,9 @@ namespace ClipboardManager
                     w = Convert.ToInt32(w / factor);
                     h = maxH;
                 }
-            } 
+            }
+            if (w <= 0) w = 1;
+            if (h <= 0) h = 1;
             return new Bitmap(image, new Size(w, h));
         }
 
@@ -290,6 +291,57 @@ namespace ClipboardManager
                 }
             }
             return null;
+        }
+
+        public static Tuple<string, string> checkForUpdate()
+        {
+            WebClient client = new WebClient();
+            string title;
+            string text;
+            string msg = null;
+            bool error = false;
+            try
+            {
+                msg = client.DownloadString(ClipboardManager.VERSION_URL);
+            }
+            catch { error = true; }
+            if (error)
+            {
+                title = "Verbindungsfehler";
+                text = "Überprüfen sie ihre Internetverbindung";
+            }
+            else
+            {
+                Version version = Assembly.GetExecutingAssembly().GetName().Version;
+                Version newVersion = null;
+                Version.TryParse(msg, out newVersion);
+                if (newVersion == null)
+                {
+                    title = "Verbindungsfehler";
+                    text = "Fehler beim abrufen der aktuellen Version";
+                }
+                else if (newVersion > version)
+                {
+                    title = "Neue Version verfügbar";
+                    text = "Version " + Util.TrimVersion(newVersion) + " ist verfügbar";
+                }
+                else
+                {
+                    title = "Keine Updates verfügbar";
+                    text = "Version " + Util.TrimVersion(version) + " ist aktuell";
+                }
+            }
+            return Tuple.Create(title, text);
+        }
+
+        public static string TrimVersion(Version v)
+        {
+            string s = v.ToString();
+            while (s.EndsWith(".0"))
+            {
+                s = s.Substring(0, s.Length - 2);
+            }
+            return s;
         }
 
 
