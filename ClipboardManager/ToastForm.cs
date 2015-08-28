@@ -5,13 +5,13 @@ using System.Windows.Forms;
 
 namespace ClipboardManager
 {
-    public partial class UpdateForm : Form
+    public partial class ToastForm : Form
     {
         private bool enteredForm = false;
         private int xPos;
         Timer timer;
 
-        public UpdateForm(string title, string text)
+        public ToastForm(string title, string text)
         {
 
             InitializeComponent();
@@ -38,6 +38,7 @@ namespace ClipboardManager
 
             label_URL.MouseEnter += AboutForm_MouseEnter;
             label_URL.MouseLeave += AboutForm_MouseLeave;
+            label_URL.Cursor = Cursors.Hand;
 
             pictureBox_exit.MouseEnter += PictureBox_exit_MouseEnter;
             pictureBox_exit.MouseLeave += PictureBox_exit_MouseLeave;

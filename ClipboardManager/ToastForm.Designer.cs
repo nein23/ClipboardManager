@@ -1,6 +1,6 @@
 ﻿namespace ClipboardManager
 {
-    partial class AboutForm
+    partial class ToastForm
     {
         /// <summary>
         /// Required designer variable.
@@ -50,11 +50,11 @@
             this.label_title.TabIndex = 0;
             this.label_title.Text = "Clipboard Manager";
             // 
-            // pictureBox1_icon
+            // pictureBox_icon
             // 
             this.pictureBox_icon.Image = global::ClipboardManager.Properties.Resources.info_blue;
             this.pictureBox_icon.Location = new System.Drawing.Point(15, 15);
-            this.pictureBox_icon.Name = "pictureBox1_icon";
+            this.pictureBox_icon.Name = "pictureBox_icon";
             this.pictureBox_icon.Size = new System.Drawing.Size(26, 26);
             this.pictureBox_icon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.pictureBox_icon.TabIndex = 1;
@@ -74,13 +74,13 @@
             // label_URL
             // 
             this.label_URL.AutoSize = true;
-            this.label_URL.Font = new System.Drawing.Font("Segoe UI", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label_URL.Font = new System.Drawing.Font("Segoe UI", 11.25F, System.Drawing.FontStyle.Underline, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label_URL.ForeColor = System.Drawing.SystemColors.AppWorkspace;
             this.label_URL.Location = new System.Drawing.Point(50, 48);
             this.label_URL.Name = "label_URL";
-            this.label_URL.Size = new System.Drawing.Size(88, 20);
+            this.label_URL.Size = new System.Drawing.Size(109, 20);
             this.label_URL.TabIndex = 3;
-            this.label_URL.Text = "Visit GitHub";
+            this.label_URL.Text = "Visit on GitHub";
             this.label_URL.Click += new System.EventHandler(this.label_URL_Click);
             // 
             // pictureBox_exit
@@ -92,7 +92,7 @@
             this.pictureBox_exit.TabIndex = 4;
             this.pictureBox_exit.TabStop = false;
             // 
-            // AboutForm
+            // UpdateForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -106,7 +106,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "AboutForm";
+            this.Name = "UpdateForm";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;

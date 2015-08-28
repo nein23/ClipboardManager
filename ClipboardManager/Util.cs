@@ -2,9 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Windows.Forms;
 
 namespace ClipboardManager
@@ -109,38 +111,69 @@ namespace ClipboardManager
             return null;
         }
 
-        internal static Tuple<string, Image, string, Image, int> getItemData(IDataObject iData)
+        public enum ClipboardDataFormat : int { Text = 1, Files = 2, Image = 4, Audio = 8, Unknown = 16 }
+
+        public struct ClipboardItemData
+        {
+            private int formats;
+            private string text;
+            private Image image;
+            private string toolTip;
+            private Image toolTipImage;
+
+            public int Foramts { get { return formats; } }
+            public string Text { get { return text; } }
+            public Image Image { get { return image; } }
+            public string ToolTip { get { return toolTip; } }
+            public Image ToolTipImage { get { return toolTipImage; } }
+
+            public ClipboardItemData(int formats, string text, Image image, string toolTip, Image toolTipImage)
+            {
+                this.formats = formats;
+                this.text = text;
+                this.image = image;
+                this.toolTip = toolTip;
+                this.toolTipImage = toolTipImage;
+            }
+        }
+
+        internal static bool isPowerOfTwo(int i)
+        {
+            return (i & (i - 1)) == 0;
+        }
+
+        internal static bool containsClipboardDataFormat(int formats, ClipboardDataFormat format)
+        {
+            return ((formats & (int)format) != 0);
+        }
+
+        internal static ClipboardItemData getItemData(IDataObject iData)
         {
             string text = null;
             Image image = null;
             string toolTip = null;
             Image toolTipImage = null;
-            int type = -1;
+            int formats = 0;
+
             if (iData != null)
             {
-                bool audio = false;
-                bool fdl = false;
-                bool img = false;
-                bool txt = false;
-                bool unknown = false;
-                int found = 0;
-                if (Clipboard.ContainsAudio()) { found += 1; audio = true; }
-                if (Clipboard.ContainsFileDropList()) { found += 1; fdl = true; }
-                if (Clipboard.ContainsImage()) { found += 1; img = true; }
-                if (Clipboard.ContainsText()) { found += 1; txt = true; }
-                if(found == 0) { found += 1; unknown = true; }
-                if (found > 1)
+                if (Clipboard.ContainsAudio()) formats |= (int)ClipboardDataFormat.Audio;
+                if (Clipboard.ContainsFileDropList()) formats |= (int)ClipboardDataFormat.Files;
+                if (Clipboard.ContainsImage()) formats |= (int)ClipboardDataFormat.Image;
+                if (Clipboard.ContainsText()) formats |= (int)ClipboardDataFormat.Text;
+                if(formats == 0) formats |= (int)ClipboardDataFormat.Unknown;
+
+                if ((formats & (formats -1)) != 0)
                 {
                     text = "Multiple Data: "
-                        + (txt ? "Text" : "") + " | "
-                        + (fdl ? "Files/Folders" : "") + " | "
-                        + (img ? "Image" : "") + " | "
-                        + (audio ? "Audio Data" : "") + " | "
-                        + (unknown ? "Unknown Data" : "");
+                        + (containsClipboardDataFormat(formats, ClipboardDataFormat.Text) ? "Text" : "") + " | "
+                        + (containsClipboardDataFormat(formats, ClipboardDataFormat.Files) ? "Files/Folders" : "") + " | "
+                        + (containsClipboardDataFormat(formats, ClipboardDataFormat.Image) ? "Image" : "") + " | "
+                        + (containsClipboardDataFormat(formats, ClipboardDataFormat.Audio) ? "Audio Data" : "") + " | "
+                        + (containsClipboardDataFormat(formats, ClipboardDataFormat.Unknown) ? "Unknown Data" : "");
                     text = text.TrimEnd(new char[] { ' ', '|' });
                     image = Resources.multi;
-                    type = ClipboardToolStripMenuItem.TYPE_MULTI;
-                    if (img)
+                    if (containsClipboardDataFormat(formats, ClipboardDataFormat.Image))
                     {
                         Image originalImage = null;
                         if (iData.GetDataPresent(DataFormats.Dib))
@@ -167,7 +200,7 @@ namespace ClipboardManager
                         toolTip = Util.createToolTip(files, 50, 20, false);
                     }
                 }
-                else if (txt)
+                else if (containsClipboardDataFormat(formats, ClipboardDataFormat.Text))
                 {
                     if (iData.GetDataPresent(DataFormats.Text))
                     {
@@ -182,9 +215,8 @@ namespace ClipboardManager
                     }
                     if (text == null) text = "Text";
                     image = Resources.txt;
-                    type = ClipboardToolStripMenuItem.TYPE_TEXT;
                 }
-                else if (fdl)
+                else if (containsClipboardDataFormat(formats, ClipboardDataFormat.Files))
                 {
                     if (iData.GetDataPresent(DataFormats.FileDrop))
                     {
@@ -198,9 +230,8 @@ namespace ClipboardManager
                     }
                     if (text == null) text = "Files/Folders";
                     image = Resources.fileFolder;
-                    type = ClipboardToolStripMenuItem.TYPE_FILES;
                 }
-                else if (img)
+                else if (containsClipboardDataFormat(formats, ClipboardDataFormat.Image))
                 {
                     Image originalImage = null;
                     if (iData.GetDataPresent(DataFormats.Dib))
@@ -223,22 +254,90 @@ namespace ClipboardManager
                     if (text == null) text = "Image";
                     if (image == null) image = Resources.image;
                     toolTip = "Image";
-                    type = ClipboardToolStripMenuItem.TYPE_IMAGES;
                 }
-                else if (audio)
+                else if (containsClipboardDataFormat(formats, ClipboardDataFormat.Audio))
                 {
                     text = "Audio Data";
                     image = Resources.speaker;
-                    type = ClipboardToolStripMenuItem.TYPE_AUDIO;
                 }
                 else
                 {
                     text = "Unknown Data";
                     image = Resources.help;
-                    type = ClipboardToolStripMenuItem.TYPE_UNKNOWN;
                 }
             }
-            return new Tuple<string, Image, string, Image, int>(text, image, toolTip, toolTipImage, type);
+            ClipboardItemData itemData = new ClipboardItemData(formats, text, image, toolTip, toolTipImage);
+            return itemData;
+        }
+
+        internal static ClipboardToolStripMenuItem historyItemsHaveSameContent(ToolStripItemCollection items, ClipboardToolStripMenuItem item)
+        {
+            if(items != null || items.Count > 0 || item != null)
+            {
+                foreach(ToolStripItem i in items)
+                {
+                    if(i != null && i is ClipboardToolStripMenuItem)
+                    {
+                        ClipboardToolStripMenuItem ci = (ClipboardToolStripMenuItem)i;
+                        if(item.Formats == ci.Formats && item.Data != null && ci.Data != null)
+                        {
+                            if (dictonariesContainSameData(ci.Data, item.Data)) return ci;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static bool dictonariesContainSameData(Dictionary<string, object> d0, Dictionary<string, object> d1)
+        {
+            if (d0 != null && d1 != null && d0.Count == d1.Count)
+            {
+                foreach(string key in d0.Keys)
+                {
+                    if (d1.ContainsKey(key))
+                    {
+                        object d0Val = d0[key];
+                        object d1Val = d1[key];
+                        if (d0Val != null && d1Val != null)
+                        {
+                            Type d0ValType = d0Val.GetType();
+                            Type d1ValType = d1Val.GetType();
+                            if (d0ValType == d1ValType)
+                            {
+                                if (d0ValType.IsSerializable && d1ValType.IsSerializable)
+                                {
+                                    BinaryFormatter formatter = new BinaryFormatter();
+                                    MemoryStream d0Stream = new MemoryStream();
+                                    formatter.Serialize(d0Stream, d0Val);
+                                    formatter = new BinaryFormatter();
+                                    MemoryStream d1Stream = new MemoryStream();
+                                    formatter.Serialize(d1Stream, d1Val);
+                                    byte[] d0ValBytes = d0Stream.ToArray();
+                                    byte[] d1ValBytes = d1Stream.ToArray();
+                                    if (CompareArrays(d0ValBytes, d1ValBytes)) continue;
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private static bool CompareArrays(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length)
+                return false;
+
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i])
+                    return false;
+            }
+            return true;
         }
 
         internal static Image scaleImage(Image image, int maxW, int maxH)
@@ -293,12 +392,13 @@ namespace ClipboardManager
             return null;
         }
 
-        public static Tuple<string, string> checkForUpdate()
+        public static Tuple<string, string, bool> checkForUpdate()
         {
             WebClient client = new WebClient();
             string title;
             string text;
             string msg = null;
+            bool newVersionAvailable = false;
             bool error = false;
             try
             {
@@ -324,6 +424,7 @@ namespace ClipboardManager
                 {
                     title = "Neue Version verfügbar";
                     text = "Version " + Util.TrimVersion(newVersion) + " ist verfügbar";
+                    newVersionAvailable = true;
                 }
                 else
                 {
@@ -331,7 +432,7 @@ namespace ClipboardManager
                     text = "Version " + Util.TrimVersion(version) + " ist aktuell";
                 }
             }
-            return Tuple.Create(title, text);
+            return Tuple.Create(title, text, newVersionAvailable);
         }
 
         public static string TrimVersion(Version v)
@@ -342,6 +443,16 @@ namespace ClipboardManager
                 s = s.Substring(0, s.Length - 2);
             }
             return s;
+        }
+
+        internal static void openLeftClickContextMenu(NotifyIcon ni, ClipboardContextMenu leftContextMenu)
+        {
+            ContextMenuStrip rightContextMenu = ni.ContextMenuStrip;
+            ni.ContextMenuStrip = leftContextMenu;
+            leftContextMenu.MousePos = Cursor.Position;
+            MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
+            mi.Invoke(ni, null);
+            ni.ContextMenuStrip = rightContextMenu;
         }
 
 

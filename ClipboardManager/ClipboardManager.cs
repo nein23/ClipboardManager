@@ -14,10 +14,9 @@ namespace ClipboardManager
         private NotifyIcon ni;
         private Settings settings;
         private ClipboardContextMenu leftContextMenu;
-        private ContextMenuStrip rightContextMenu;
         private readonly Timer clipboardChangedTimer = new Timer();
         private bool pause = false;
-        private Form toast;
+        private ToastForm toast;
 
         #region Init
 
@@ -27,11 +26,12 @@ namespace ClipboardManager
             initNotifyIcon();
             initContextMenus();
             initClipboardHook();
+            checkForUpdate();
         }
 
         private void init()
         {
-            this.Name = "ClipboardManager";
+            this.Name = APPLICATION_NAME;
             this.Visible = false;
             settings = new Settings();
 
@@ -50,7 +50,7 @@ namespace ClipboardManager
         {
             leftContextMenu = new ClipboardContextMenu(ni, settings);
 
-            rightContextMenu = new ContextMenuStrip();
+            ContextMenuStrip rightContextMenu = new ContextMenuStrip();
             ToolStripMenuItem item = new ToolStripMenuItem();
             item.Text = "Clear Clipboard";
             item.Image = Resources.clipboardEmpty;
@@ -129,7 +129,7 @@ namespace ClipboardManager
             base.Dispose(disposing);
         }
 
-        protected override void WndProc(ref System.Windows.Forms.Message m)
+        protected override void WndProc(ref Message m)
         {
             const int WM_CLIPBOARDUPDATE = 0x031D;
             const int WM_HOTKEY = 0x0312;
@@ -142,8 +142,7 @@ namespace ClipboardManager
                     break;
 
                 case WM_HOTKEY:
-
-                    openLeftClickContextMenu();
+                    Util.openLeftClickContextMenu(ni, leftContextMenu);
                     break;
 
 
@@ -153,12 +152,18 @@ namespace ClipboardManager
             }
         }
 
-        private void openLeftClickContextMenu()
+        private void checkForUpdate()
         {
-            ni.ContextMenuStrip = leftContextMenu;
-            MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
-            mi.Invoke(ni, null);
-            ni.ContextMenuStrip = rightContextMenu;
+            Tuple<string, string, bool> res = Util.checkForUpdate();
+            if (res.Item3)
+            {
+                if (toast != null)
+                {
+                    toast.Close();
+                }
+                toast = new ToastForm(res.Item1, res.Item2);
+                toast.Show();
+            }
         }
 
         #endregion
@@ -169,7 +174,7 @@ namespace ClipboardManager
         {
             if (e.Button == MouseButtons.Left)
             {
-                openLeftClickContextMenu();
+                Util.openLeftClickContextMenu(ni, leftContextMenu);
             }
         }
 
@@ -225,8 +230,8 @@ namespace ClipboardManager
             {
                 toast.Close();
             }
-            Tuple<string, string> res = Util.checkForUpdate();
-            toast = new UpdateForm(res.Item1, res.Item2);
+            Tuple<string, string, bool> res = Util.checkForUpdate();
+            toast = new ToastForm(res.Item1, res.Item2);
             toast.Show();
         }
 
@@ -236,30 +241,25 @@ namespace ClipboardManager
             {
                 toast.Close();
             }
-            toast = new AboutForm();
+
+            Version version = Assembly.GetExecutingAssembly().GetName().Version;
+            string title = APPLICATION_NAME + " " + version.Major + "." + version.Minor;
+            string text = "Copyright \u00A9 2015 Stefan Käsdorf";
+
+            toast = new ToastForm(title, text);
             toast.Show();
         }
 
         private void exit_Click(object sender, EventArgs e)
         {
-            if (System.Windows.Forms.Application.MessageLoop) System.Windows.Forms.Application.Exit();
-            else System.Environment.Exit(1);
+            if (Application.MessageLoop) Application.Exit();
+            else Environment.Exit(1);
         }
 
         #endregion
 
         #region User32.dll
-
-        [DllImport("User32.dll")]
-        private static extern int SetClipboardViewer(int hWndNewViewer);
-
-        [DllImport("User32.dll", CharSet = CharSet.Auto)]
-        private static extern bool ChangeClipboardChain(IntPtr hWndRemove, IntPtr hWndNewNext);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern int SendMessage(IntPtr hwnd, int wMsg, IntPtr wParam, IntPtr lParam);
-
-
+        
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool AddClipboardFormatListener(IntPtr hwnd);

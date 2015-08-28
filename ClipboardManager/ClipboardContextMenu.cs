@@ -20,6 +20,8 @@ namespace ClipboardManager
 
         private NotifyIcon ni;
         private Settings settings;
+        
+        public Point MousePos { get; set; }
 
         #endregion
 
@@ -51,14 +53,8 @@ namespace ClipboardManager
                 setClipboardItem(null);
                 return;
             }
-            Tuple<string, Image, string, Image, int> itemData = Util.getItemData(iData);
-            ClipboardToolStripMenuItem item = new ClipboardToolStripMenuItem(
-                itemData.Item1,
-                itemData.Item2,
-                contents,
-                itemData.Item3,
-                itemData.Item4,
-                itemData.Item5);
+            Util.ClipboardItemData itemData = Util.getItemData(iData);
+            ClipboardToolStripMenuItem item = new ClipboardToolStripMenuItem(itemData, contents);
             item.MouseUp += item_MouseUpRight;
             setClipboardItem(item);
         }
@@ -66,19 +62,27 @@ namespace ClipboardManager
         private void setClipboardItem(ClipboardToolStripMenuItem clipboardItem)
         {
             ToolStripItem cur = Items[0];
-            if (clipboardItem == null)
+            if (cur != null)
             {
-                if (isClipboardEmptyItem(cur)) return;
-                Items.RemoveAt(0);
-                Items.Insert(0, clipboardEmptyItem);
-                if (settings.StoreAtClear && cur is ClipboardToolStripMenuItem) addHistoryItem(cur as ClipboardToolStripMenuItem);
-                else if (cur != null) cur.Dispose();
-            }
-            else
-            {
-                Items.Remove(cur);
-                Items.Insert(0, clipboardItem);
-                if (cur is ClipboardToolStripMenuItem) addHistoryItem(cur as ClipboardToolStripMenuItem);
+                if (clipboardItem == null)
+                {
+                    if (isClipboardEmptyItem(cur)) return;
+                    Items.RemoveAt(0);
+                    Items.Insert(0, clipboardEmptyItem);
+                    if (settings.StoreAtClear && cur is ClipboardToolStripMenuItem) addHistoryItem(cur as ClipboardToolStripMenuItem);
+                    else if (cur != null) cur.Dispose();
+                }
+                else
+                {
+                    ClipboardToolStripMenuItem duplicate = Util.historyItemsHaveSameContent(Items, clipboardItem);
+                    if (duplicate != null && Items.Contains(duplicate)) Items.Remove(duplicate);
+                    if (Items.Contains(cur)) Items.Remove(cur);
+                    Items.Insert(0, clipboardItem);
+                    if (duplicate == null || !duplicate.Equals(cur))
+                    {
+                        if (cur is ClipboardToolStripMenuItem) addHistoryItem(cur as ClipboardToolStripMenuItem);
+                    }
+                }
             }
         }
 
@@ -88,7 +92,12 @@ namespace ClipboardManager
             {
                 item.ToolTip.Hide(item.Owner);
                 if (isHistoryItem(item)) removeHistoryItem(item);
-                else Clipboard.Clear();
+                else
+                {
+                    Items.Remove(item);
+                    Items.Insert(0, clipboardEmptyItem);
+                    Clipboard.Clear();
+                }
             }
         }
 
@@ -109,12 +118,12 @@ namespace ClipboardManager
 
         private bool isFiltered(ClipboardToolStripMenuItem historyItem)
         {
-            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_TEXT) return !settings.FilterText;
-            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_FILES) return !settings.FilterFiles;
-            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_IMAGES) return !settings.FilterImages;
-            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_AUDIO) return !settings.FilterAudio;
-            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_MULTI) return !settings.FilterMulti;
-            if (historyItem.Type == ClipboardToolStripMenuItem.TYPE_UNKNOWN) return !settings.FilterUnknown;
+            if (!Util.isPowerOfTwo(historyItem.Formats)) return !settings.FilterMulti;
+            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Text)) return !settings.FilterText;
+            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Files)) return !settings.FilterFiles;
+            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Image)) return !settings.FilterImages;
+            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Audio)) return !settings.FilterAudio;
+            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Unknown)) return !settings.FilterUnknown;
             return false;
         }
 
@@ -199,7 +208,20 @@ namespace ClipboardManager
             if (e.Button == MouseButtons.Right && sender is ClipboardToolStripMenuItem)
             {
                 removeItem(sender as ClipboardToolStripMenuItem);
+                Timer reopenTimer = new Timer();
+                reopenTimer.Interval = 1;
+                reopenTimer.Tick += ReopenTimer_Tick;
+                reopenTimer.Enabled = true;
             }
+        }
+
+        private void ReopenTimer_Tick(object sender, EventArgs e)
+        {
+            ((Timer)sender).Enabled = false;
+            Point curPos = Cursor.Position;
+            Cursor.Position = MousePos;
+            Util.openLeftClickContextMenu(ni, this);
+            Cursor.Position = curPos;
         }
 
         private void item_MouseUpLeft(object sender, MouseEventArgs e)
