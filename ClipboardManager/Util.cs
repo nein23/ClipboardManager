@@ -14,7 +14,7 @@ namespace ClipboardManager
     class Util
     {
         private static readonly int maxImg = 400;
-        
+
         public enum KeyModifier
         {
             None = 0,
@@ -96,7 +96,10 @@ namespace ClipboardManager
                 Dictionary<string, object> contents = new Dictionary<string, object>();
                 foreach (string format in iData.GetFormats())
                 {
-                    if (!DataFormats.MetafilePict.Equals(format) && iData.GetDataPresent(format))
+                    if (format != null 
+                        && !DataFormats.MetafilePict.Equals(format) 
+                        && !"Shell Object Offsets".Equals(format)
+                        && iData.GetDataPresent(format))
                     {
                         try
                         {
@@ -392,45 +395,47 @@ namespace ClipboardManager
             return null;
         }
 
-        public static Tuple<string, string, bool> checkForUpdate()
+        public static Version getNewestVersion()
+        {
+            try
+            {
+                WebClient client = new WebClient();
+                string str = client.DownloadString(ClipboardManager.VERSION_URL);
+                Version newestVersion = null;
+                Version.TryParse(str, out newestVersion);
+                return newestVersion;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public static Tuple<string, string, string> checkForUpdate()
         {
             WebClient client = new WebClient();
             string title;
             string text;
-            string msg = null;
-            bool newVersionAvailable = false;
-            bool error = false;
-            try
+            string newVersionAvailable = null;
+
+            Version version = Assembly.GetExecutingAssembly().GetName().Version;
+            Version newestVersion = getNewestVersion();
+            if (newestVersion == null)
             {
-                msg = client.DownloadString(ClipboardManager.VERSION_URL);
+                title = "Connection Error";
+                text = "Unable to request information";
+                return Tuple.Create(title, text, newVersionAvailable);
             }
-            catch { error = true; }
-            if (error)
+            else if (newestVersion > version)
             {
-                title = "Verbindungsfehler";
-                text = "Überprüfen sie ihre Internetverbindung";
+                title = "New Version available";
+                newVersionAvailable = Util.TrimVersion(newestVersion);
+                text = "Version " + newVersionAvailable + " iss available";
             }
             else
             {
-                Version version = Assembly.GetExecutingAssembly().GetName().Version;
-                Version newVersion = null;
-                Version.TryParse(msg, out newVersion);
-                if (newVersion == null)
-                {
-                    title = "Verbindungsfehler";
-                    text = "Fehler beim abrufen der aktuellen Version";
-                }
-                else if (newVersion > version)
-                {
-                    title = "Neue Version verfügbar";
-                    text = "Version " + Util.TrimVersion(newVersion) + " ist verfügbar";
-                    newVersionAvailable = true;
-                }
-                else
-                {
-                    title = "Keine Updates verfügbar";
-                    text = "Version " + Util.TrimVersion(version) + " ist aktuell";
-                }
+                title = "No Updates available";
+                text = "Version " + Util.TrimVersion(version) + " is up-to-date";
             }
             return Tuple.Create(title, text, newVersionAvailable);
         }
@@ -453,6 +458,18 @@ namespace ClipboardManager
             MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
             mi.Invoke(ni, null);
             ni.ContextMenuStrip = rightContextMenu;
+        }
+
+        internal static string getTempFile()
+        {
+            try { return Path.GetTempFileName(); }
+            catch { return null; }
+        }
+
+        internal static string getTempFolder()
+        {
+            try { return Path.GetTempPath(); }
+            catch { return null; }
         }
 
 

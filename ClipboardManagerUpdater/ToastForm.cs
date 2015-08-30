@@ -1,33 +1,22 @@
-﻿using ClipboardManager.Properties;
+﻿using ClipboardManagerUpdater.Properties;
 using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
-using System.Reflection;
 using System.Windows.Forms;
 
-namespace ClipboardManager
+namespace ClipboardManagerUpdater
 {
     public partial class ToastForm : Form
     {
         private bool enteredForm = false;
         private int xPos;
         private Timer timer;
-        private string newestVersion;
+        private string fileName;
         private int maxX;
 
-        public ToastForm(string title, string text)
+        public ToastForm(string title, string text, string fileName)
         {
-            init(title, text, null);
-        }
-        public ToastForm(string title, string text, string newestVersion)
-        {
-            init(title, text, newestVersion);
-        }
-
-        private void init(string title, string text, string newestVersion) {
-
-            this.newestVersion = newestVersion;
+            this.fileName = fileName;
 
             InitializeComponent();
 
@@ -69,12 +58,14 @@ namespace ClipboardManager
             label_linked.Click += exit_Click;
             pictureBox_exit.Click += exit_Click;
 
-            if(newestVersion != null)
+            if (fileName != null)
             {
-                label_linked.Text = "Update now";
-                label_linked.Click += Label_linked_Click;
+                label_linked.Click += label_URL_Restart_Click;
+                label_linked.Text = "Start Clipboard Manager";
                 label_linked.Cursor = Cursors.Hand;
             }
+
+            label_URL.Click += label_URL_Click;
 
             timer = new Timer();
             timer.Interval = 10;
@@ -135,28 +126,9 @@ namespace ClipboardManager
             System.Diagnostics.Process.Start("https://github.com/nein23/ClipboardManager");
         }
 
-        private void Label_linked_Click(object sender, EventArgs e)
+        private void label_URL_Restart_Click(object sender, EventArgs e)
         {
-            string tmpPath = Util.getTempFolder();
-            if(tmpPath != null)
-            {
-                tmpPath += "\\" + ClipboardManager.APPLICATION_NAME;
-                Directory.CreateDirectory(tmpPath);
-                string tmpFile = tmpPath + "\\" + ClipboardManager.UPDATER_FILE_NAME;
-                System.IO.File.WriteAllBytes(tmpFile, Resources.ClipboardManagerUpdater);
-                ProcessStartInfo info = new ProcessStartInfo(tmpFile);
-                string processName = Process.GetCurrentProcess().ProcessName;
-                string applicationPath = "\"" + Assembly.GetExecutingAssembly().Location + "\"";
-                info.Arguments = processName + " " + applicationPath + " " + newestVersion;
-                info.UseShellExecute = true;
-                info.Verb = "runas";
-                Process process = Process.Start(info);
-                process.WaitForExit();
-                try {
-                    File.Delete(tmpFile);
-                }
-                catch { }
-            }
+            if(fileName != null) Process.Start(fileName);
         }
 
         private void exit_Click(object sender, EventArgs e)

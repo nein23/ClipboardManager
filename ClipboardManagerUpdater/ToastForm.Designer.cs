@@ -1,4 +1,4 @@
-﻿namespace ClipboardManager
+﻿namespace ClipboardManagerUpdater
 {
     partial class ToastForm
     {
@@ -53,7 +53,7 @@
             // 
             // pictureBox_icon
             // 
-            this.pictureBox_icon.Image = global::ClipboardManager.Properties.Resources.info_blue;
+            this.pictureBox_icon.Image = global::ClipboardManagerUpdater.Properties.Resources.info_blue;
             this.pictureBox_icon.Location = new System.Drawing.Point(15, 15);
             this.pictureBox_icon.Name = "pictureBox_icon";
             this.pictureBox_icon.Size = new System.Drawing.Size(26, 26);
@@ -68,9 +68,8 @@
             this.label_text.ForeColor = System.Drawing.SystemColors.AppWorkspace;
             this.label_text.Location = new System.Drawing.Point(50, 28);
             this.label_text.Name = "label_text";
-            this.label_text.Size = new System.Drawing.Size(74, 20);
+            this.label_text.Size = new System.Drawing.Size(0, 20);
             this.label_text.TabIndex = 2;
-            this.label_text.Text = "Copyright";
             // 
             // label_URL
             // 
@@ -82,7 +81,6 @@
             this.label_URL.Size = new System.Drawing.Size(109, 20);
             this.label_URL.TabIndex = 3;
             this.label_URL.Text = "Visit on GitHub";
-            this.label_URL.Click += new System.EventHandler(this.label_URL_Click);
             // 
             // pictureBox_exit
             // 

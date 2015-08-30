@@ -10,6 +10,7 @@ namespace ClipboardManager
     {
         public static readonly string APPLICATION_NAME = "Clipboard Manager";
         public static readonly string VERSION_URL = "https://raw.githubusercontent.com/nein23/ClipboardManager/master/version";
+        public static readonly string UPDATER_FILE_NAME = "ClipboardManagerUpdater.exe";
 
         private NotifyIcon ni;
         private Settings settings;
@@ -154,14 +155,14 @@ namespace ClipboardManager
 
         private void checkForUpdate()
         {
-            Tuple<string, string, bool> res = Util.checkForUpdate();
-            if (res.Item3)
+            Tuple<string, string, string> res = Util.checkForUpdate();
+            if (res.Item3 != null)
             {
                 if (toast != null)
                 {
                     toast.Close();
                 }
-                toast = new ToastForm(res.Item1, res.Item2);
+                toast = new ToastForm(res.Item1, res.Item2, res.Item3);
                 toast.Show();
             }
         }
@@ -230,8 +231,8 @@ namespace ClipboardManager
             {
                 toast.Close();
             }
-            Tuple<string, string, bool> res = Util.checkForUpdate();
-            toast = new ToastForm(res.Item1, res.Item2);
+            Tuple<string, string, string> res = Util.checkForUpdate();
+            toast = new ToastForm(res.Item1, res.Item2, res.Item3);
             toast.Show();
         }
 

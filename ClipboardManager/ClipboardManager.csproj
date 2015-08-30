@@ -145,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="clipboard_2_64.ico" />
+    <None Include="Resources\ClipboardManagerUpdater.exe" />
     <Content Include="Resources\clipboard_0_32.ico" />
     <Content Include="Resources\clipboard_1_32.ico" />
     <Content Include="Resources\clipboard_2_32.ico" />
