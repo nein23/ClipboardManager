@@ -1,7 +1,7 @@
 # ClipboardManager
 
 <p align="center">
-<img alt="version" src="https://img.shields.io/badge/version-1.7-brightgreen.svg" height="20px">  <img alt="license" src="https://img.shields.io/badge/license-GNU%20GPLv3-blue.svg" height="20px">
+<img alt="version" src="https://img.shields.io/badge/version-1.8-brightgreen.svg" height="20px">  <img alt="license" src="https://img.shields.io/badge/license-GNU%20GPLv3-blue.svg" height="20px">
 </p>
 
 Description
@@ -22,8 +22,8 @@ Features
 	- Clear the Clipboard or the entire history via the right-click context menu
 	- Filter the types of data you want to remember
 	- Assign a hotkey for quick access to the history
-	- Automatically checks for updates at start
-	- Check for updates via the right-click context menu
+	- Updater that can update the Application automatically
+	- Manually check for updates
 	- Windows autostart
 
 Screenshots
