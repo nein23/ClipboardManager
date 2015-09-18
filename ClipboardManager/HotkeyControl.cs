@@ -3,7 +3,7 @@ using System.Windows.Forms;
 
 namespace ClipboardManager
 {
-    internal class HotkeyControl : TextBox
+    public class HotkeyControl : TextBox
     {
         // These variables store the current hotkey and modifier(s)
         private Keys _hotkey = Keys.None;

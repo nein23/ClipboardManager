@@ -1,7 +1,7 @@
 # ClipboardManager
 
 <p align="center">
-<img alt="version" src="https://img.shields.io/badge/version-1.8-brightgreen.svg" height="20px">  <img alt="license" src="https://img.shields.io/badge/license-GNU%20GPLv3-blue.svg" height="20px">
+<img alt="version" src="https://img.shields.io/badge/version-1.9-brightgreen.svg" height="20px">  <img alt="license" src="https://img.shields.io/badge/license-GNU%20GPLv3-blue.svg" height="20px">
 </p>
 
 Description
@@ -17,13 +17,13 @@ Features
 	- Show tooltips depending on the type of copied data
 	- Delete entries via right-clicking them
 	- Duplicates in the history will be removed automatically
+	- Specify size limits for remembered entries
 	- Automatically remove remembered entries after a defined time
 	- Pause and continue the clipboard tracking
 	- Clear the Clipboard or the entire history via the right-click context menu
 	- Filter the types of data you want to remember
-	- Assign a hotkey for quick access to the history
-	- Updater that can update the Application automatically
-	- Manually check for updates
+	- Assign a hotkeys for quick accessing the history and other functions
+	- Updater that can update the application automatically
 	- Windows autostart
 
 Screenshots
@@ -62,8 +62,3 @@ With a growing history the notify icon "grows" aswell
 The right-click context menu
  
 ![Screenshot7](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/7.png)
-
-
-The Settings
-
-![Screenshot8](https://raw.githubusercontent.com/nein23/userContent/master/ClipboardManager/Screenshots/8.png)

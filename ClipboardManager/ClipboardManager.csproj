@@ -88,15 +88,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClipboardContent.cs" />
     <Compile Include="ClipboardContextMenu.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="ClipboardManager.cs">
+    <Compile Include="ClipboardManagerTray.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ClipboardToolStripMenuItem.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Updater.cs" />
+    <Compile Include="Util\ClipboardUtil.cs" />
+    <Compile Include="Util\HotkeyUtil.cs" />
+    <Compile Include="Util\ImageUtil.cs" />
     <Compile Include="HotkeyControl.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -115,11 +120,14 @@
     <Compile Include="ToastForm.Designer.cs">
       <DependentUpon>ToastForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Util.cs" />
+    <Compile Include="Util\ContextUtil.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SettingsForm.resx">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ToastForm.resx">
       <DependentUpon>ToastForm.cs</DependentUpon>

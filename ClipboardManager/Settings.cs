@@ -1,5 +1,7 @@
-﻿using Microsoft.Win32;
+﻿using ClipboardManager.Util;
+using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -7,91 +9,202 @@ namespace ClipboardManager
 {
     public class Settings
     {
-        public static readonly String REG_KEY_SETTINGS = @"Software\KaeDoWare\" + ClipboardManager.APPLICATION_NAME;
+        #region Reg Keys
+
+        public static readonly String REG_KEY_SETTINGS = @"Software\KaeDoWare\" + ClipboardManagerTray.APPLICATION_NAME;
         public static readonly String REG_KEY_SETTINGS_NUM_HISTORY = "NumHistory";
         public static readonly String REG_KEY_SETTINGS_STORE_AT_CLEAR = "StoreAtClear";
         public static readonly String REG_KEY_SETTINGS_LIFE_TIME_ENABLED = "LifeTimeEnabled";
         public static readonly String REG_KEY_SETTINGS_LIFE_TIME_VALUE = "LifeTimeValue";
-        public static readonly String REG_KEY_SETTINGS_FILTER_TEXT = "FilterText";
-        public static readonly String REG_KEY_SETTINGS_FILTER_FILES = "FilterFiles";
-        public static readonly String REG_KEY_SETTINGS_FILTER_IMAGES = "FilterImages";
-        public static readonly String REG_KEY_SETTINGS_FILTER_AUDIO = "FilterAudio";
-        public static readonly String REG_KEY_SETTINGS_FILTER_MULTI = "FilterMulti";
-        public static readonly String REG_KEY_SETTINGS_FILTER_UNKNOWN = "FilterUnknown";
-        public static readonly String REG_KEY_SETTINGS_HK_MOD = "HK_Mod";
-        public static readonly String REG_KEY_SETTINGS_HK_KEY = "HK_Key";
+
+        public static readonly String REG_KEY_SETTINGS_TYPEFILTER = "TypeFilter";
+
+        public static readonly String REG_KEY_SETTINGS_SIZEFILTER_GLOBAL = "SizeFilterGlobal";
+        public static readonly String REG_KEY_SETTINGS_SIZEFILTER_TEXT = "SizeFilterText";
+        public static readonly String REG_KEY_SETTINGS_SIZEFILTER_FILES = "SizeFilterFiles";
+        public static readonly String REG_KEY_SETTINGS_SIZEFILTER_IMAGES = "SizeFilterImages";
+        public static readonly String REG_KEY_SETTINGS_SIZEFILTER_AUDIO = "SizeFilterAudio";
+        public static readonly String REG_KEY_SETTINGS_SIZEFILTER_MULTI = "SizeFilterMulti";
+        public static readonly String REG_KEY_SETTINGS_SIZEFILTER_UNKNOWN = "SizeFilterUnknown";
+
+        public static readonly String REG_KEY_SETTINGS_HK_OPEN_MOD = "HK_Open_Mod";
+        public static readonly String REG_KEY_SETTINGS_HK_OPEN_KEY = "HK_Open_Key";
+        public static readonly String REG_KEY_SETTINGS_HK_PAUSE_MOD = "HK_Pause_Mod";
+        public static readonly String REG_KEY_SETTINGS_HK_PAUSE_KEY = "HK_Pause_Key";
+        public static readonly String REG_KEY_SETTINGS_HK_CLEAR_MOD = "HK_Clear_Mod";
+        public static readonly String REG_KEY_SETTINGS_HK_CLEAR_KEY = "HK_Clear_Key";
+
         public static readonly String REG_KEY_WIN_AUTOSTART = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
         public static readonly String REG_KEY_WIN_AUTOSTART_VALUE = "\"" + Assembly.GetExecutingAssembly().Location + "\"";
+
+        #endregion
+
+        #region Defaults
         public static readonly int DEFAULT_NUM_HISTORY = 10;
         public static readonly bool DEFAULT_STORE_AT_CLEAR = false;
         public static readonly bool DEFAULT_LIFE_TIME_ENABLED = false;
         public static readonly int DEFAULT_LIFE_TIME_VALUE = 5;
-        public static readonly bool DEFAULT_FILTER_TEXT = true;
-        public static readonly bool DEFAULT_FILTER_FILES = true;
-        public static readonly bool DEFAULT_FILTER_IMAGES = true;
-        public static readonly bool DEFAULT_FILTER_AUDIO = false;
-        public static readonly bool DEFAULT_FILTER_MULTI = true;
-        public static readonly bool DEFAULT_FILTER_UNKNOWN = false;
-        public static readonly int DEFAULT_HK_MOD = (int)Util.KeyModifier.Control | (int)Util.KeyModifier.Shift;
-        public static readonly int DEFAULT_HK_KEY = (int)Keys.C;
+
+        public static readonly int DEFAULT_TYPEFILTER = 23;
+
+        public static readonly int DEFAULT_SIZEFILTER = 2;
+
+        public static readonly int DEFAULT_HK_OPEN_MOD = (int)HotkeyUtil.KeyModifier.Control | (int)HotkeyUtil.KeyModifier.Shift;
+        public static readonly int DEFAULT_HK_OPEN_KEY = (int)Keys.C;
+        public static readonly int DEFAULT_HK_KEY_EMPTY = 0;
+
+        #endregion
+
+        #region Structs
+
+        public struct TypeFilterSettings
+        {
+            public bool text;
+            public bool files;
+            public bool images;
+            public bool audio;
+            public bool multi;
+            public bool unknown;
+
+            public TypeFilterSettings(int val)
+            {
+                text = (val & 1) == 1;
+                val = (int) ((uint) val >> 1);
+                files = (val & 1) == 1;
+                val = (int)((uint)val >> 1);
+                images = (val & 1) == 1;
+                val = (int)((uint)val >> 1);
+                audio = (val & 1) == 1;
+                val = (int)((uint)val >> 1);
+                multi = (val & 1) == 1;
+                val = (int)((uint)val >> 1);
+                unknown = (val & 1) == 1;
+            }
+
+            public TypeFilterSettings(bool text, bool files, bool images, bool audio, bool multi, bool unknown)
+            {
+                this.text = text;
+                this.files = files;
+                this.images = images;
+                this.audio = audio;
+                this.multi = multi;
+                this.unknown = unknown;
+            }
+
+            public int getVal()
+            {
+                int val = unknown ? 1 : 0;
+                val <<= 1;
+                val += multi ? 1 : 0;
+                val <<= 1;
+                val += audio ? 1 : 0;
+                val <<= 1;
+                val += images ? 1 : 0;
+                val <<= 1;
+                val += files ? 1 : 0;
+                val <<= 1;
+                val += text ? 1 : 0;
+                return val;
+            }
+        }
+
+        public struct SizeFilterSettings
+        {
+            public bool enabled;
+            public int value;
+
+            public SizeFilterSettings(int val)
+            {
+                enabled = (val & 1) == 1;
+                
+                value = (int) ((uint) val >> 1);
+                if (value < 1 || value > 999) value = 1;
+            }
+
+            public SizeFilterSettings(bool enabled, int value)
+            {
+                this.enabled = enabled;
+                this.value = value;
+            }
+
+            public int getVal()
+            {
+                int val = enabled ? 1 : 0;
+                val += value << 1;
+                return val;
+            }
+        }
+
+        #endregion
+
+        #region Private Fields
 
         private bool autostart;
         private int numHistory;
         private bool storeAtClear;
         private bool lifeTimeEnabled;
         private int lifeTimeValue;
-        private bool filterText;
-        private bool filterFiles;
-        private bool filterImages;
-        private bool filterAudio;
-        private bool filterMulti;
-        private bool filterUnknown;
-        private int hk_mod;
-        private int hk_key;
+
+        private TypeFilterSettings typeFilter;
+
+        private SizeFilterSettings sizeFilterGlobal;
+        private SizeFilterSettings sizeFilterText;
+        private SizeFilterSettings sizeFilterFiles;
+        private SizeFilterSettings sizeFilterImages;
+        private SizeFilterSettings sizeFilterAudio;
+        private SizeFilterSettings sizeFilterMulti;
+        private SizeFilterSettings sizeFilterUnknown;
+
+        //private HotkeySettings hk_open;
+        //private HotkeySettings hk_pause;
+        //private HotkeySettings hk_clear;
+
+        private List<HotkeyUtil.HotkeyStruct> hotkeys;
+
+        #endregion
+
+        #region Public Fields
 
         internal bool Autostart { get { return autostart; } set { setAutostart(value); } }
         internal int NumHistory { get { return numHistory; } set { setNumHistory(value); } }
         internal bool StoreAtClear { get { return storeAtClear; } set { setStoreAtClear(value); } }
         internal bool LifeTimeEnabled { get { return lifeTimeEnabled; } set { setLifeTimeEnabled(value); } }
         internal int LifeTimeValue { get { return lifeTimeValue; } set { setLifeTimeValue(value); } }
-        internal bool FilterText { get { return filterText; } set { setFilterText(value); } }
-        internal bool FilterFiles { get { return filterFiles; } set { setFilterFiles(value); } }
-        internal bool FilterImages { get { return filterImages; } set { setFilterImages(value); } }
-        internal bool FilterAudio { get { return filterAudio; } set { setFilterAudio(value); } }
-        internal bool FilterMulti { get { return filterMulti; } set { setFilterMulti(value); } }
-        internal bool FilterUnknown { get { return filterUnknown; } set { setFilterUnknown(value); } }
-        internal int HK_Mod { get { return hk_mod; } set { setHK_Mod(value); } }
-        internal int HK_Key { get { return hk_key; } set { setHK_Key(value); } }
 
+        internal TypeFilterSettings TypeFilter { get { return typeFilter; } set { setTypeFilter(value); } }
+
+        internal SizeFilterSettings SizeFilterGlobal { get { return sizeFilterGlobal; } set { setSizeFilterGlobal(value); } }
+        internal SizeFilterSettings SizeFilterText { get { return sizeFilterText; } set { setSizeFilterText(value); } }
+        internal SizeFilterSettings SizeFilterFiles { get { return sizeFilterFiles; } set { setSizeFilterFiles(value); } }
+        internal SizeFilterSettings SizeFilterImages { get { return sizeFilterImages; } set { setSizeFilterImages(value); } }
+        internal SizeFilterSettings SizeFilterAudio { get { return sizeFilterAudio; } set { setSizeFilterAudio(value); } }
+        internal SizeFilterSettings SizeFilterMulti { get { return sizeFilterMulti; } set { setSizeFilterMulti(value); } }
+        internal SizeFilterSettings SizeFilterUnknown { get { return sizeFilterUnknown; } set { setSizeFilterUnknown(value); } }
+
+        //internal HotkeySettings HK_Open { get { return hk_open; } set { setHotkeyOpen(value); } }
+        //internal HotkeySettings HK_Pause { get { return hk_pause; } set { setHotkeyPause(value); } }
+        //internal HotkeySettings HK_Clear { get { return hk_clear; } set { setHotkeyClear(value); } }
+        internal List<HotkeyUtil.HotkeyStruct> Hotkeys { get { return hotkeys; } set { setHotkeys(value); } }
+
+        #endregion
 
         public Settings()
         {
             cleanUp();
-            loadAutostart();
+            load();
+        }
+
+        public void load()
+        {
             loadNumHistory();
             loadStoreAtClear();
             loadLifeTimeEnabled();
             loadLifeTimeValue();
-            loadFilter();
-            loadHotkey();
+            loadTypeFilter();
+            loadSizeFilter();
+            loadHotkeys();
         }
-
-        public void loadFilter()
-        {
-            loadFilterText();
-            loadFilterFiles();
-            loadFilterImages();
-            loadFilterAudio();
-            loadFilterMulti();
-            loadFilterUnknown();
-        }
-
-        public void loadHotkey()
-        {
-            loadHK_Mod();
-            loadHK_Key();
-        }
-
+             
         private void cleanUp()
         {
             RegistryKey regKey = Registry.CurrentUser.OpenSubKey(REG_KEY_SETTINGS, true);
@@ -101,14 +214,22 @@ namespace ClipboardManager
                 {
                     if (!REG_KEY_SETTINGS_NUM_HISTORY.Equals(value)
                         && !REG_KEY_SETTINGS_STORE_AT_CLEAR.Equals(value)
-                        && !REG_KEY_SETTINGS_FILTER_TEXT.Equals(value)
-                        && !REG_KEY_SETTINGS_FILTER_FILES.Equals(value)
-                        && !REG_KEY_SETTINGS_FILTER_IMAGES.Equals(value)
-                        && !REG_KEY_SETTINGS_FILTER_AUDIO.Equals(value)
-                        && !REG_KEY_SETTINGS_FILTER_MULTI.Equals(value)
-                        && !REG_KEY_SETTINGS_FILTER_UNKNOWN.Equals(value)
-                        && !REG_KEY_SETTINGS_HK_MOD.Equals(value)
-                        && !REG_KEY_SETTINGS_HK_KEY.Equals(value))
+                        && !REG_KEY_SETTINGS_LIFE_TIME_ENABLED.Equals(value)
+                        && !REG_KEY_SETTINGS_LIFE_TIME_VALUE.Equals(value)
+                        && !REG_KEY_SETTINGS_TYPEFILTER.Equals(value)
+                        && !REG_KEY_SETTINGS_SIZEFILTER_GLOBAL.Equals(value)
+                        && !REG_KEY_SETTINGS_SIZEFILTER_TEXT.Equals(value)
+                        && !REG_KEY_SETTINGS_SIZEFILTER_FILES.Equals(value)
+                        && !REG_KEY_SETTINGS_SIZEFILTER_IMAGES.Equals(value)
+                        && !REG_KEY_SETTINGS_SIZEFILTER_AUDIO.Equals(value)
+                        && !REG_KEY_SETTINGS_SIZEFILTER_MULTI.Equals(value)
+                        && !REG_KEY_SETTINGS_SIZEFILTER_UNKNOWN.Equals(value)
+                        && !REG_KEY_SETTINGS_HK_OPEN_MOD.Equals(value)
+                        && !REG_KEY_SETTINGS_HK_OPEN_KEY.Equals(value)
+                        && !REG_KEY_SETTINGS_HK_PAUSE_MOD.Equals(value)
+                        && !REG_KEY_SETTINGS_HK_PAUSE_KEY.Equals(value)
+                        && !REG_KEY_SETTINGS_HK_CLEAR_MOD.Equals(value)
+                        && !REG_KEY_SETTINGS_HK_CLEAR_KEY.Equals(value))
                     {
                         regKey.DeleteValue(value, false);
                     }
@@ -123,7 +244,7 @@ namespace ClipboardManager
             RegistryKey regKey = Registry.CurrentUser.OpenSubKey(REG_KEY_WIN_AUTOSTART, true);
             if (regKey != null)
             {
-                object value = regKey.GetValue(ClipboardManager.APPLICATION_NAME);
+                object value = regKey.GetValue(ClipboardManagerTray.APPLICATION_NAME);
                 if (value != null && value.GetType() == typeof(String))
                 {
                     String str = (String)value;
@@ -135,198 +256,42 @@ namespace ClipboardManager
             else autostart = false;
         }
 
-        private void loadNumHistory()
+        private void loadNumHistory() { numHistory = loadSettingsInt(REG_KEY_SETTINGS_NUM_HISTORY, DEFAULT_NUM_HISTORY, 1, 20); }
+        private void loadStoreAtClear() { storeAtClear = loadSettingsBool(REG_KEY_SETTINGS_STORE_AT_CLEAR, DEFAULT_STORE_AT_CLEAR); }
+        private void loadLifeTimeEnabled() { lifeTimeEnabled = loadSettingsBool(REG_KEY_SETTINGS_LIFE_TIME_ENABLED, DEFAULT_LIFE_TIME_ENABLED); }
+        private void loadLifeTimeValue() { lifeTimeValue = loadSettingsInt(REG_KEY_SETTINGS_LIFE_TIME_VALUE, DEFAULT_LIFE_TIME_VALUE, 1, 60); }
+
+
+        private void loadTypeFilter()
         {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_NUM_HISTORY);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val > 0 && val <= 20) numHistory = val;
-                    else numHistory = DEFAULT_NUM_HISTORY;
-                }
-                else numHistory = DEFAULT_NUM_HISTORY;
-            }
-            else numHistory = DEFAULT_NUM_HISTORY;
+            typeFilter = new TypeFilterSettings(loadSettingsInt(REG_KEY_SETTINGS_TYPEFILTER, DEFAULT_TYPEFILTER));
         }
 
-        private void loadStoreAtClear()
+
+
+        private void loadSizeFilter()
         {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_STORE_AT_CLEAR);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val == 0) storeAtClear = false;
-                    else storeAtClear = true;
-                }
-                else storeAtClear = DEFAULT_STORE_AT_CLEAR;
-            }
-            else storeAtClear = DEFAULT_STORE_AT_CLEAR;
+            sizeFilterGlobal = new SizeFilterSettings(loadSettingsInt(REG_KEY_SETTINGS_SIZEFILTER_GLOBAL, DEFAULT_SIZEFILTER));
+            sizeFilterText = new SizeFilterSettings(loadSettingsInt(REG_KEY_SETTINGS_SIZEFILTER_TEXT, DEFAULT_SIZEFILTER));
+            sizeFilterFiles = new SizeFilterSettings(loadSettingsInt(REG_KEY_SETTINGS_SIZEFILTER_FILES, DEFAULT_SIZEFILTER));
+            sizeFilterImages = new SizeFilterSettings(loadSettingsInt(REG_KEY_SETTINGS_SIZEFILTER_IMAGES, DEFAULT_SIZEFILTER));
+            sizeFilterAudio = new SizeFilterSettings(loadSettingsInt(REG_KEY_SETTINGS_SIZEFILTER_AUDIO, DEFAULT_SIZEFILTER));
+            sizeFilterMulti = new SizeFilterSettings(loadSettingsInt(REG_KEY_SETTINGS_SIZEFILTER_MULTI, DEFAULT_SIZEFILTER));
+            sizeFilterUnknown = new SizeFilterSettings(loadSettingsInt(REG_KEY_SETTINGS_SIZEFILTER_UNKNOWN, DEFAULT_SIZEFILTER));
         }
 
-        private void loadLifeTimeEnabled()
+        private void loadHotkeys()
         {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_LIFE_TIME_ENABLED);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val == 0) lifeTimeEnabled = false;
-                    else lifeTimeEnabled = true;
-                }
-                else lifeTimeEnabled = DEFAULT_LIFE_TIME_ENABLED;
-            }
-            else lifeTimeEnabled = DEFAULT_LIFE_TIME_ENABLED;
-        }
-
-        private void loadLifeTimeValue()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_LIFE_TIME_VALUE);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val >= 1 && val <= 60) lifeTimeValue = val;
-                    else lifeTimeValue = DEFAULT_LIFE_TIME_VALUE;
-                }
-                else lifeTimeValue = DEFAULT_LIFE_TIME_VALUE;
-            }
-            else lifeTimeValue = DEFAULT_LIFE_TIME_VALUE;
-        }
-
-        private void loadFilterText()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_FILTER_TEXT);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val == 0) filterText = false;
-                    else filterText = true;
-                }
-                else filterText = DEFAULT_FILTER_TEXT;
-            }
-            else filterText = DEFAULT_FILTER_TEXT;
-        }
-
-        private void loadFilterFiles()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_FILTER_FILES);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val == 0) filterFiles = false;
-                    else filterFiles = true;
-                }
-                else filterFiles = DEFAULT_FILTER_FILES;
-            }
-            else filterFiles = DEFAULT_FILTER_FILES;
-        }
-
-        private void loadFilterImages()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_FILTER_IMAGES);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val == 0) filterImages = false;
-                    else filterImages = true;
-                }
-                else filterImages = DEFAULT_FILTER_IMAGES;
-            }
-            else filterImages = DEFAULT_FILTER_IMAGES;
-        }
-
-        private void loadFilterAudio()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_FILTER_AUDIO);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val == 0) filterAudio = false;
-                    else filterAudio = true;
-                }
-                else filterAudio = DEFAULT_FILTER_AUDIO;
-            }
-            else filterAudio = DEFAULT_FILTER_AUDIO;
-        }
-
-        private void loadFilterMulti()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_FILTER_MULTI);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val == 0) filterMulti = false;
-                    else filterMulti = true;
-                }
-                else filterMulti = DEFAULT_FILTER_MULTI;
-            }
-            else filterMulti = DEFAULT_FILTER_MULTI;
-        }
-
-        private void loadFilterUnknown()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_FILTER_UNKNOWN);
-                if (value != null && value.GetType() == typeof(Int32))
-                {
-                    int val = (int)value;
-                    if (val == 0) filterUnknown = false;
-                    else filterUnknown = true;
-                }
-                else filterUnknown = DEFAULT_FILTER_UNKNOWN;
-            }
-            else filterUnknown = DEFAULT_FILTER_UNKNOWN;
-        }
-
-        private void loadHK_Mod()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_HK_MOD);
-                if (value != null && value.GetType() == typeof(Int32)) hk_mod = (int)value;
-                else hk_mod = DEFAULT_HK_MOD;
-            }
-            else hk_mod = DEFAULT_HK_MOD;
-        }
-
-        private void loadHK_Key()
-        {
-            RegistryKey regKey = getSettingsRegKey(true);
-            if (regKey != null)
-            {
-                object value = regKey.GetValue(REG_KEY_SETTINGS_HK_KEY);
-                if (value != null && value.GetType() == typeof(Int32)) hk_key = (int)value;
-                else hk_key = DEFAULT_HK_KEY;
-            }
-            else hk_key = DEFAULT_HK_KEY;
+            hotkeys = new List<HotkeyUtil.HotkeyStruct>();
+            int mod = loadSettingsInt(REG_KEY_SETTINGS_HK_OPEN_MOD, DEFAULT_HK_OPEN_MOD);
+            int key = loadSettingsInt(REG_KEY_SETTINGS_HK_OPEN_KEY, DEFAULT_HK_OPEN_KEY);
+            hotkeys.Add(new HotkeyUtil.HotkeyStruct(mod, key));
+            mod = loadSettingsInt(REG_KEY_SETTINGS_HK_PAUSE_MOD, DEFAULT_HK_KEY_EMPTY);
+            key = loadSettingsInt(REG_KEY_SETTINGS_HK_PAUSE_KEY, DEFAULT_HK_KEY_EMPTY);
+            hotkeys.Add(new HotkeyUtil.HotkeyStruct(mod, key));
+            mod = loadSettingsInt(REG_KEY_SETTINGS_HK_CLEAR_MOD, DEFAULT_HK_KEY_EMPTY);
+            key = loadSettingsInt(REG_KEY_SETTINGS_HK_CLEAR_KEY, DEFAULT_HK_KEY_EMPTY);
+            hotkeys.Add(new HotkeyUtil.HotkeyStruct(mod, key));
         }
 
         #endregion
@@ -337,85 +302,41 @@ namespace ClipboardManager
         {
             if (enable)
             {
-                setCurUserRegValue(REG_KEY_WIN_AUTOSTART, ClipboardManager.APPLICATION_NAME, REG_KEY_WIN_AUTOSTART_VALUE);
+                setCurUserRegValue(REG_KEY_WIN_AUTOSTART, ClipboardManagerTray.APPLICATION_NAME, REG_KEY_WIN_AUTOSTART_VALUE);
             }
             else
             {
-                deleteCurUserRegValue(REG_KEY_WIN_AUTOSTART, ClipboardManager.APPLICATION_NAME);
+                deleteCurUserRegValue(REG_KEY_WIN_AUTOSTART, ClipboardManagerTray.APPLICATION_NAME);
             }
             loadAutostart();
         }
 
-        private void setNumHistory(int num)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_NUM_HISTORY, num);
-            loadNumHistory();
-        }
+        private void setNumHistory(int num) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_NUM_HISTORY, num); }
+        private void setStoreAtClear(bool enable) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_STORE_AT_CLEAR, enable ? 1 : 0); }
+        private void setLifeTimeEnabled(bool enable) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_LIFE_TIME_ENABLED, enable ? 1 : 0); }
+        private void setLifeTimeValue(int num) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_LIFE_TIME_VALUE, num); }
 
-        private void setStoreAtClear(bool enable)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_STORE_AT_CLEAR, enable ? 1 : 0);
-            loadStoreAtClear();
-        }
+        private void setTypeFilter(TypeFilterSettings filterSettings) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_TYPEFILTER, filterSettings.getVal()); }
 
-        private void setLifeTimeEnabled(bool enable)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_LIFE_TIME_ENABLED, enable ? 1 : 0);
-            loadLifeTimeEnabled();
-        }
+        private void setSizeFilterGlobal(SizeFilterSettings filterSettings) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_SIZEFILTER_GLOBAL, filterSettings.getVal()); }
+        private void setSizeFilterText(SizeFilterSettings filterSettings) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_SIZEFILTER_TEXT, filterSettings.getVal()); }
+        private void setSizeFilterFiles(SizeFilterSettings filterSettings) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_SIZEFILTER_FILES, filterSettings.getVal()); }
+        private void setSizeFilterImages(SizeFilterSettings filterSettings) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_SIZEFILTER_IMAGES, filterSettings.getVal()); }
+        private void setSizeFilterAudio(SizeFilterSettings filterSettings) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_SIZEFILTER_AUDIO, filterSettings.getVal()); }
+        private void setSizeFilterMulti(SizeFilterSettings filterSettings) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_SIZEFILTER_MULTI, filterSettings.getVal()); }
+        private void setSizeFilterUnknown(SizeFilterSettings filterSettings) { setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_SIZEFILTER_UNKNOWN, filterSettings.getVal()); }
 
-        private void setLifeTimeValue(int num)
+        private void setHotkeys(List<HotkeyUtil.HotkeyStruct> hks)
         {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_LIFE_TIME_VALUE, num);
-            loadLifeTimeValue();
-        }
-
-        private void setFilterText(bool enable)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_FILTER_TEXT, enable ? 1 : 0);
-            loadFilterText();
-        }
-
-        private void setFilterFiles(bool enable)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_FILTER_FILES, enable ? 1 : 0);
-            loadFilterFiles();
-        }
-
-        private void setFilterImages(bool enable)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_FILTER_IMAGES, enable ? 1 : 0);
-            loadFilterImages();
-        }
-
-        private void setFilterAudio(bool enable)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_FILTER_AUDIO, enable ? 1 : 0);
-            loadFilterAudio();
-        }
-
-        private void setFilterMulti(bool enable)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_FILTER_MULTI, enable ? 1 : 0);
-            loadFilterMulti();
-        }
-
-        private void setFilterUnknown(bool enable)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_FILTER_UNKNOWN, enable ? 1 : 0);
-            loadFilterUnknown();
-        }
-
-        private void setHK_Mod(int mod)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_HK_MOD, mod);
-            loadHK_Mod();
-        }
-
-        private void setHK_Key(int key)
-        {
-            setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_HK_KEY, key);
-            loadHK_Key();
+            if (hks.Count == 3)
+            {
+                setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_HK_OPEN_MOD, hks[0].mod);
+                setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_HK_OPEN_KEY, hks[0].key);
+                setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_HK_PAUSE_MOD, hks[1].mod);
+                setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_HK_PAUSE_KEY, hks[1].key);
+                setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_HK_CLEAR_MOD, hks[2].mod);
+                setCurUserRegValue(REG_KEY_SETTINGS, REG_KEY_SETTINGS_HK_CLEAR_KEY, hks[2].key);
+            }
         }
 
         #endregion
@@ -452,6 +373,42 @@ namespace ClipboardManager
                     try { regKey.DeleteValue(name); }
                     catch { }
             }
+        }
+
+        private bool loadSettingsBool(string name, bool def)
+        {
+            RegistryKey regKey = getSettingsRegKey(true);
+            if (regKey != null && name != null)
+            {
+                object value = regKey.GetValue(name);
+                if (value != null && value.GetType() == typeof(Int32))
+                {
+                    int val = (int)value;
+                    return (val != 0);
+                }
+            }
+            return def;
+        }
+
+        private int loadSettingsInt(string name, int def)
+        {
+            RegistryKey regKey = getSettingsRegKey(true);
+            if (regKey != null)
+            {
+                object value = regKey.GetValue(name);
+                if (value != null && value.GetType() == typeof(Int32))
+                {
+                    return (int)value;
+                }
+            }
+            return def;
+        }
+        
+        private int loadSettingsInt(string name, int def, int min, int max)
+        {
+            int val = loadSettingsInt(name, def);
+            if (val >= min && val <= max) return val;
+            return def;
         }
 
         #endregion

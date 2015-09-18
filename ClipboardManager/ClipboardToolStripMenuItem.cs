@@ -8,26 +8,34 @@ namespace ClipboardManager
     internal class ClipboardToolStripMenuItem : ToolStripMenuItem
     {
         private int formats;
-        Dictionary<string, object> data;
+        private Dictionary<string, object> data;
+        private Dictionary<string, string> hashs;
+        private long dataSize;
         private ToolTip toolTip;
         private Image toolTipImage;
         private int toolTipOffset;
         private Timer lifeTimeTimer;
+        private bool placeHolder = false;
 
         internal int Formats { get { return formats; } }
         internal Dictionary<string, object> Data { get { return data; } }
+        internal Dictionary<string, string> Hashs { get { return hashs; } }
+        internal long DataSize { get { return dataSize; } }
         internal ToolTip ToolTip { get { return toolTip; } }
         internal Timer LifeTimeTimer { get { return lifeTimeTimer; } }
         internal DateTime Date { get; set; }
+        internal bool PlaceHolder { get { return placeHolder; } }
 
-        internal ClipboardToolStripMenuItem(Util.ClipboardItemData itemData, Dictionary<string, object> data)
+        internal ClipboardToolStripMenuItem(ClipboardContent content)
         {
-            this.Text = itemData.Text;
-            this.Image = itemData.Image;
-            this.data = data;
-            this.ToolTipText = itemData.ToolTip;
-            this.toolTipImage = itemData.ToolTipImage;
-            this.formats = itemData.Foramts;
+            this.Text = content.Text;
+            this.Image = content.Image;
+            this.data = content.Data;
+            this.hashs = content.Hashs;
+            this.dataSize = content.Size;
+            this.ToolTipText = content.ToolTip;
+            this.toolTipImage = content.ToolTipImage;
+            this.formats = content.Foramts;
 
             initToolTip();
 
@@ -91,6 +99,15 @@ namespace ClipboardManager
                 int hgt = toolTipImage.Height + 2;
                 e.ToolTipSize = new Size(wid, hgt);
             }
+        }
+
+        internal void setPlaceholder()
+        {
+            data = null;
+            hashs = null;
+            dataSize = 0;
+            this.ForeColor = SystemColors.GrayText;
+            placeHolder = true;
         }
 
         #endregion

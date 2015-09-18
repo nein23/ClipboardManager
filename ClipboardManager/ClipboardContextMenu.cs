@@ -1,4 +1,5 @@
 ﻿using ClipboardManager.Properties;
+using ClipboardManager.Util;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -20,6 +21,7 @@ namespace ClipboardManager
 
         private NotifyIcon ni;
         private Settings settings;
+        private Timer gcTimer;
         
         public Point MousePos { get; set; }
 
@@ -32,12 +34,22 @@ namespace ClipboardManager
             this.ni = ni;
             this.settings = settings;
             ShowItemToolTips = false;
+
             clipboardEmptyItem.Enabled = false;
             historyEmptyItem.Enabled = false;
-            Items.Add(clipboardEmptyItem);
-            Items.Add(sep);
-            Items.Add(historyEmptyItem);
+            clearHistory();
+
+            gcTimer = new Timer();
+            gcTimer.Interval = 100;
+            gcTimer.Tick += GcTimer_Tick;
+            gcTimer.Enabled = false;
+
             update();
+        }
+
+        private void GcTimer_Tick(object sender, EventArgs e)
+        {
+            GC.Collect();
         }
 
         #endregion
@@ -47,14 +59,13 @@ namespace ClipboardManager
         internal void update()
         {
             IDataObject iData = Clipboard.GetDataObject();
-            Dictionary<string, object> contents = Util.getContents(iData);
-            if (contents.Count == 0)
+            ClipboardContent content = new ClipboardContent(iData);
+            if (content.isEmpty())
             {
                 setClipboardItem(null);
                 return;
             }
-            Util.ClipboardItemData itemData = Util.getItemData(iData);
-            ClipboardToolStripMenuItem item = new ClipboardToolStripMenuItem(itemData, contents);
+            ClipboardToolStripMenuItem item = new ClipboardToolStripMenuItem(content);
             item.MouseUp += item_MouseUpRight;
             setClipboardItem(item);
         }
@@ -70,18 +81,36 @@ namespace ClipboardManager
                     Items.RemoveAt(0);
                     Items.Insert(0, clipboardEmptyItem);
                     if (settings.StoreAtClear && cur is ClipboardToolStripMenuItem) addHistoryItem(cur as ClipboardToolStripMenuItem);
-                    else if (cur != null) cur.Dispose();
+                    else if (cur != null) removeItemComplete(cur);
                 }
                 else
                 {
-                    ClipboardToolStripMenuItem duplicate = Util.historyItemsHaveSameContent(Items, clipboardItem);
-                    if (duplicate != null && Items.Contains(duplicate)) Items.Remove(duplicate);
-                    if (Items.Contains(cur)) Items.Remove(cur);
-                    Items.Insert(0, clipboardItem);
-                    if (duplicate == null || !duplicate.Equals(cur))
+                    if (isFiltered(clipboardItem))
+                        clipboardItem.setPlaceholder();
+                    else
                     {
-                        if (cur is ClipboardToolStripMenuItem) addHistoryItem(cur as ClipboardToolStripMenuItem);
+                        ClipboardToolStripMenuItem duplicate = ClipboardUtil.findDuplicate(Items, clipboardItem);
+                        if (duplicate != null)
+                        {
+                            Items.Remove(duplicate);
+                            if(duplicate.Equals(cur) && cur is ClipboardToolStripMenuItem)
+                                (cur as ClipboardToolStripMenuItem).setPlaceholder();
+                            else removeItemComplete(duplicate);
+                        }
+
+                        Settings.SizeFilterSettings sizeSettings = ClipboardUtil.getMaxSizeForClipboardType(clipboardItem.Formats, settings);
+                        long ciSize = clipboardItem.DataSize / 1000;
+                        if ((sizeSettings.enabled && (sizeSettings.value * 1000) < ciSize)
+                            || (settings.SizeFilterGlobal.enabled && (settings.SizeFilterGlobal.value * 1000) < ciSize))
+                        {
+                            clipboardItem.setPlaceholder();
+                        }
                     }
+                    Items.Remove(cur);
+                    Items.Insert(0, clipboardItem);
+                    if (cur is ClipboardToolStripMenuItem && !((cur as ClipboardToolStripMenuItem).PlaceHolder))
+                        addHistoryItem(cur as ClipboardToolStripMenuItem);
+                    else removeItemComplete(cur);
                 }
             }
         }
@@ -94,7 +123,7 @@ namespace ClipboardManager
                 if (isHistoryItem(item)) removeHistoryItem(item);
                 else
                 {
-                    Items.Remove(item);
+                    removeItemComplete(item);
                     Items.Insert(0, clipboardEmptyItem);
                     Clipboard.Clear();
                 }
@@ -103,7 +132,7 @@ namespace ClipboardManager
 
         private void addHistoryItem(ClipboardToolStripMenuItem historyItem)
         {
-            if (!isFiltered(historyItem))
+            if (historyItem != null && !historyItem.PlaceHolder)
             {
                 Items.Remove(historyEmptyItem);
                 Items.Insert(2, historyItem);
@@ -111,19 +140,19 @@ namespace ClipboardManager
                 historyItem.Date = DateTime.Now;
                 historyItem.LifeTimeTimer.Tick += lifeTimeTimer_Tick;
                 if (settings.LifeTimeEnabled) historyItem.LifeTimeTimer.Start();
-                while (isHistoryOverFilled()) Items.RemoveAt(Items.Count - 1);
+                cutHistory();
                 updateNotifyIcon();
             }
         }
 
         private bool isFiltered(ClipboardToolStripMenuItem historyItem)
         {
-            if (!Util.isPowerOfTwo(historyItem.Formats)) return !settings.FilterMulti;
-            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Text)) return !settings.FilterText;
-            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Files)) return !settings.FilterFiles;
-            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Image)) return !settings.FilterImages;
-            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Audio)) return !settings.FilterAudio;
-            if (Util.containsClipboardDataFormat(historyItem.Formats, Util.ClipboardDataFormat.Unknown)) return !settings.FilterUnknown;
+            if (!ClipboardUtil.isSingleDataFormat(historyItem.Formats)) return !settings.TypeFilter.multi;
+            if (ClipboardUtil.containsClipboardDataFormat(historyItem.Formats, ClipboardUtil.ClipboardDataFormat.Text)) return !settings.TypeFilter.text;
+            if (ClipboardUtil.containsClipboardDataFormat(historyItem.Formats, ClipboardUtil.ClipboardDataFormat.Files)) return !settings.TypeFilter.files;
+            if (ClipboardUtil.containsClipboardDataFormat(historyItem.Formats, ClipboardUtil.ClipboardDataFormat.Images)) return !settings.TypeFilter.images;
+            if (ClipboardUtil.containsClipboardDataFormat(historyItem.Formats, ClipboardUtil.ClipboardDataFormat.Audio)) return !settings.TypeFilter.audio;
+            if (ClipboardUtil.containsClipboardDataFormat(historyItem.Formats, ClipboardUtil.ClipboardDataFormat.Unknown)) return !settings.TypeFilter.unknown;
             return false;
         }
 
@@ -132,7 +161,7 @@ namespace ClipboardManager
             if(isHistoryItem(historyItem))
             {
                 historyItem.LifeTimeTimer.Stop();
-                Items.Remove(historyItem);
+                removeItemComplete(historyItem);
                 if (Items.Count == 2) Items.Add(historyEmptyItem);
                 updateNotifyIcon();
                 return true;
@@ -140,9 +169,52 @@ namespace ClipboardManager
             return false;
         }
 
-        internal void clearHistory(int historySize)
+        internal void updateHistoryToMatchSettings()
         {
-            while (Items.Count > historySize + 2)
+            List<ClipboardToolStripMenuItem> toDelete = new List<ClipboardToolStripMenuItem>();
+            foreach(ToolStripItem item in Items)
+            {
+                if (item is ClipboardToolStripMenuItem)
+                {
+                    ClipboardToolStripMenuItem ci = item as ClipboardToolStripMenuItem;
+                    int index = Items.IndexOf(ci);
+                    if (isFiltered(ci))
+                    {
+                        if (index == 0) ci.setPlaceholder();
+                        else toDelete.Add(ci);
+                    }
+                    else
+                    {
+                        Settings.SizeFilterSettings sizeSettings = ClipboardUtil.getMaxSizeForClipboardType(ci.Formats, settings);
+                        if (sizeSettings.enabled && (sizeSettings.value * 1000) < (ci.DataSize / 1000))
+                        {
+                            if (index == 0) ci.setPlaceholder();
+                            else toDelete.Add(ci);
+                        }
+                    }
+                }
+            }
+            for(int i = 0; i < toDelete.Count; i++)
+            {
+                Items.Remove(toDelete[i]);
+            }
+            cutHistory();
+
+            ToolStripItem cur = Items[0];
+            if (cur is ClipboardToolStripMenuItem)
+            {
+                ClipboardToolStripMenuItem ci = cur as ClipboardToolStripMenuItem;
+                if (settings.SizeFilterGlobal.enabled && (settings.SizeFilterGlobal.value * 1000) < (ci.DataSize / 1000))
+                {
+                    ci.setPlaceholder();
+                }
+            }
+        }
+
+
+        internal void cutHistory()
+        {
+            while (isHistoryOverFilled())
             {
                 ToolStripItem item = Items[Items.Count - 1];
                 if (isHistoryItem(item)) removeHistoryItem(item as ClipboardToolStripMenuItem);
@@ -150,6 +222,26 @@ namespace ClipboardManager
             }
             if (Items.Count == 2) Items.Add(historyEmptyItem);
             updateNotifyIcon();
+        }
+
+        internal void clearHistory()
+        {
+            Items.Clear();
+            Items.Add(clipboardEmptyItem);
+            Items.Add(sep);
+            Items.Add(historyEmptyItem);
+            updateNotifyIcon();
+        }
+
+        private long getListSizeInKB()
+        {
+            long size = 0;
+            foreach(ToolStripItem item in Items)
+            {
+                if(item is ClipboardToolStripMenuItem)
+                    size += (item as ClipboardToolStripMenuItem).DataSize;
+            }
+            return size / 1000;
         }
 
         private bool isHistoryItem(ToolStripItem item)
@@ -164,7 +256,7 @@ namespace ClipboardManager
 
         private bool isHistoryOverFilled()
         {
-            return Items.Count > settings.NumHistory + 2;
+            return Items.Count > settings.NumHistory + 2 || (settings.SizeFilterGlobal.enabled && (settings.SizeFilterGlobal.value * 1000) < getListSizeInKB());
         }
 
         private void updateNotifyIcon()
@@ -199,6 +291,17 @@ namespace ClipboardManager
             }
         }
 
+        internal void removeItemComplete(ToolStripItem item)
+        {
+            if (item != null && item is ClipboardToolStripMenuItem && Items.Contains(item))
+            {
+                Items.Remove(item);
+            }
+            item = null;
+            gcTimer.Enabled = false;
+            gcTimer.Enabled = true;
+        }
+
         #endregion
 
         #region Handler
@@ -220,7 +323,7 @@ namespace ClipboardManager
             ((Timer)sender).Enabled = false;
             Point curPos = Cursor.Position;
             Cursor.Position = MousePos;
-            Util.openLeftClickContextMenu(ni, this);
+            ContextUtil.openLeftClickContextMenu(ni, this);
             Cursor.Position = curPos;
         }
 
@@ -235,10 +338,14 @@ namespace ClipboardManager
                     if (contents != null)
                     {
                         IDataObject iData = new DataObject();
-                        foreach (string format in contents.Keys)
+                        foreach (KeyValuePair<string, object> pair in contents)
                         {
-                            object data = contents[format];
-                            iData.SetData(format, data);
+                            string format = pair.Key;
+                            object data = pair.Value;
+                            if (format != null && data != null)
+                            {
+                                iData.SetData(format, data);
+                            }
                         }
                         try
                         {

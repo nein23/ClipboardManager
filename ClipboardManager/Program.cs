@@ -15,7 +15,7 @@ namespace ClipboardManager
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                using (ClipboardManager cm = new ClipboardManager())
+                using (ClipboardManagerTray cm = new ClipboardManagerTray())
                 {
                     Application.Run();
                 }

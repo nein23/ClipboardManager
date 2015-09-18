@@ -1,9 +1,6 @@
 ﻿using ClipboardManager.Properties;
 using System;
-using System.Diagnostics;
 using System.Drawing;
-using System.IO;
-using System.Reflection;
 using System.Windows.Forms;
 
 namespace ClipboardManager
@@ -13,21 +10,20 @@ namespace ClipboardManager
         private bool enteredForm = false;
         private int xPos;
         private Timer timer;
-        private string newestVersion;
         private int maxX;
+        private Updater updater;
 
         public ToastForm(string title, string text)
         {
-            init(title, text, null);
+            init(title, text);
         }
-        public ToastForm(string title, string text, string newestVersion)
+        public ToastForm(Updater updater)
         {
-            init(title, text, newestVersion);
+            this.updater = updater;
+            init(updater.Title, updater.Text);
         }
 
-        private void init(string title, string text, string newestVersion) {
-
-            this.newestVersion = newestVersion;
+        private void init(string title, string text) {
 
             InitializeComponent();
 
@@ -69,7 +65,7 @@ namespace ClipboardManager
             label_linked.Click += exit_Click;
             pictureBox_exit.Click += exit_Click;
 
-            if(newestVersion != null)
+            if(updater != null && updater.UpdateAvailable)
             {
                 label_linked.Text = "Update now";
                 label_linked.Click += Label_linked_Click;
@@ -137,25 +133,9 @@ namespace ClipboardManager
 
         private void Label_linked_Click(object sender, EventArgs e)
         {
-            string tmpPath = Util.getTempFolder();
-            if(tmpPath != null)
+            if (updater != null)
             {
-                tmpPath += "\\" + ClipboardManager.APPLICATION_NAME;
-                Directory.CreateDirectory(tmpPath);
-                string tmpFile = tmpPath + "\\" + ClipboardManager.UPDATER_FILE_NAME;
-                System.IO.File.WriteAllBytes(tmpFile, Resources.ClipboardManagerUpdater);
-                ProcessStartInfo info = new ProcessStartInfo(tmpFile);
-                string processName = Process.GetCurrentProcess().ProcessName;
-                string applicationPath = "\"" + Assembly.GetExecutingAssembly().Location + "\"";
-                info.Arguments = processName + " " + applicationPath + " " + newestVersion;
-                info.UseShellExecute = true;
-                info.Verb = "runas";
-                Process process = Process.Start(info);
-                process.WaitForExit();
-                try {
-                    File.Delete(tmpFile);
-                }
-                catch { }
+                updater.update();
             }
         }
 
