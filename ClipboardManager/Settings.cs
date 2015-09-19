@@ -40,6 +40,7 @@ namespace ClipboardManager
         #endregion
 
         #region Defaults
+
         public static readonly int DEFAULT_NUM_HISTORY = 10;
         public static readonly bool DEFAULT_STORE_AT_CLEAR = false;
         public static readonly bool DEFAULT_LIFE_TIME_ENABLED = false;
@@ -155,10 +156,6 @@ namespace ClipboardManager
         private SizeFilterSettings sizeFilterMulti;
         private SizeFilterSettings sizeFilterUnknown;
 
-        //private HotkeySettings hk_open;
-        //private HotkeySettings hk_pause;
-        //private HotkeySettings hk_clear;
-
         private List<HotkeyUtil.HotkeyStruct> hotkeys;
 
         #endregion
@@ -180,10 +177,7 @@ namespace ClipboardManager
         internal SizeFilterSettings SizeFilterAudio { get { return sizeFilterAudio; } set { setSizeFilterAudio(value); } }
         internal SizeFilterSettings SizeFilterMulti { get { return sizeFilterMulti; } set { setSizeFilterMulti(value); } }
         internal SizeFilterSettings SizeFilterUnknown { get { return sizeFilterUnknown; } set { setSizeFilterUnknown(value); } }
-
-        //internal HotkeySettings HK_Open { get { return hk_open; } set { setHotkeyOpen(value); } }
-        //internal HotkeySettings HK_Pause { get { return hk_pause; } set { setHotkeyPause(value); } }
-        //internal HotkeySettings HK_Clear { get { return hk_clear; } set { setHotkeyClear(value); } }
+        
         internal List<HotkeyUtil.HotkeyStruct> Hotkeys { get { return hotkeys; } set { setHotkeys(value); } }
 
         #endregion
@@ -196,6 +190,7 @@ namespace ClipboardManager
 
         public void load()
         {
+            loadAutostart();
             loadNumHistory();
             loadStoreAtClear();
             loadLifeTimeEnabled();

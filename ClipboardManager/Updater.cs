@@ -103,6 +103,8 @@ namespace ClipboardManager
                     info.UseShellExecute = true;
                     info.Verb = "runas";
                     Process process = Process.Start(info);
+                    process.WaitForExit();
+                    File.Delete(tmpFile);
                 }
                 catch { }
             }

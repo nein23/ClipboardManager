@@ -1,7 +1,7 @@
 # ClipboardManager
 
 <p align="center">
-<img alt="version" src="https://img.shields.io/badge/version-1.9-brightgreen.svg" height="20px">  <img alt="license" src="https://img.shields.io/badge/license-GNU%20GPLv3-blue.svg" height="20px">
+<img alt="version" src="https://img.shields.io/badge/version-1.10-brightgreen.svg" height="20px">  <img alt="license" src="https://img.shields.io/badge/license-GNU%20GPLv3-blue.svg" height="20px">
 </p>
 
 Description
