@@ -1,113 +1,133 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
+using ClipboardManager.Properties;
 
 namespace ClipboardManager
 {
     internal class ClipboardToolStripMenuItem : ToolStripMenuItem
     {
-        private int formats;
-        private Dictionary<string, object> data;
-        private Dictionary<string, string> hashs;
-        private long dataSize;
-        private ToolTip toolTip;
-        private Image toolTipImage;
-        private int toolTipOffset;
-        private Timer lifeTimeTimer;
-        private bool placeHolder = false;
+        public ClipboardContent Content { get; }
 
-        internal int Formats { get { return formats; } }
-        internal Dictionary<string, object> Data { get { return data; } }
-        internal Dictionary<string, string> Hashs { get { return hashs; } }
-        internal long DataSize { get { return dataSize; } }
-        internal ToolTip ToolTip { get { return toolTip; } }
-        internal Timer LifeTimeTimer { get { return lifeTimeTimer; } }
-        internal DateTime Date { get; set; }
-        internal bool PlaceHolder { get { return placeHolder; } }
+        private ToolTip _toolTip;
+        private int _toolTipOffset;
 
-        internal ClipboardToolStripMenuItem(ClipboardContent content)
+        public ClipboardToolStripMenuItem(ClipboardContent content)
         {
-            this.Text = content.Text;
-            this.Image = content.Image;
-            this.data = content.Data;
-            this.hashs = content.Hashs;
-            this.dataSize = content.Size;
-            this.ToolTipText = content.ToolTip;
-            this.toolTipImage = content.ToolTipImage;
-            this.formats = content.Foramts;
+            Content = content;
 
-            initToolTip();
-
-            lifeTimeTimer = new Timer();
-            lifeTimeTimer.Interval = 60000;
-            lifeTimeTimer.Tag = this;
+            Init();
 
             AutoToolTip = false;
 
             MouseEnter += ClipboardToolStripMenuItem_MouseEnter;
             MouseLeave += ClipboardToolStripMenuItem_MouseLeave;
         }
-
-        private void initToolTip()
+        
+        private void Init()
         {
-            toolTip = new ToolTip();
-            if (toolTipImage != null)
+            if (!Content.IsEmpty())
             {
-                toolTip.OwnerDraw = true;
-                toolTip.Popup += toolTip_Popup;
-                toolTip.Draw += toolTip_Draw;
-                ToolTipText = "Image";
-                toolTipOffset = -1 * (toolTipImage.Height + 2);
+                Image = Resources.txt;
+                string text = null;
+                if (Content.HasFormat(DataFormats.UnicodeText))
+                    text = Content.Data[DataFormats.UnicodeText];
+                else if (Content.HasFormat(DataFormats.Text))
+                    text = Content.Data[DataFormats.Text];
+                else if (Content.HasFormat(DataFormats.StringFormat))
+                    text = Content.Data[DataFormats.StringFormat];
+                else if (Content.HasFormat(DataFormats.Rtf))
+                    text = Content.Data[DataFormats.Rtf];
+                else if (Content.HasFormat(DataFormats.CommaSeparatedValue))
+                    text = Content.Data[DataFormats.CommaSeparatedValue];
+                else if (Content.HasFormat(DataFormats.Html))
+                    text = Content.Data[DataFormats.Html];
+
+                if (text != null)
+                {
+                    Text = CreatePreviewString(text, 50, true);
+                    ToolTipText = CreateToolTipText(text.Split(new[] {"\r\n", "\n"}, StringSplitOptions.None).ToList(),
+                        50, 20, true);
+                }
             }
-            else if (ToolTipText != null)
+
+            _toolTip = new ToolTip();
+            if (ToolTipText != null)
             {
-                string[] split = ToolTipText.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
+                string[] split = ToolTipText.Split(new [] {"\r\n", "\n"}, StringSplitOptions.None);
                 int numLines = split.Length;
-                toolTipOffset = -1 * (5 + (numLines * 15));
+                _toolTipOffset = -1 * (5 + numLines * 15);
             }
-            else toolTipOffset = 0;
+            else
+            {
+                _toolTipOffset = 0;
+            }
         }
 
         #region Handler
 
+        protected override void Dispose(bool disposing)
+        {
+            _toolTip.Dispose();
+            base.Dispose(disposing);
+        }
+
         private void ClipboardToolStripMenuItem_MouseEnter(object sender, EventArgs e)
         {
-            toolTip.Show(ToolTipText, Owner, Bounds.X, toolTipOffset);
+            _toolTip?.Show(ToolTipText, Owner, Bounds.X, _toolTipOffset);
         }
 
         private void ClipboardToolStripMenuItem_MouseLeave(object sender, EventArgs e)
         {
-            toolTip.Hide(Owner);
+            _toolTip.Hide(Owner);
         }
 
-        private void toolTip_Draw(object sender, DrawToolTipEventArgs e)
+        private string CreateToolTipText(List<string> lines, int width, int height, bool showLineBegin)
         {
-            if (toolTipImage != null)
+            lines = lines.Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
+            if (lines.Count == 0)
             {
-                e.DrawBackground();
-                e.DrawBorder();
-                e.Graphics.DrawImage(toolTipImage, 1, 1);
+                return null;
             }
-        }
-
-        private void toolTip_Popup(object sender, PopupEventArgs e)
-        {
-            if (toolTipImage != null)
+            if (lines.Count > height)
             {
-                int wid = toolTipImage.Width + 2;
-                int hgt = toolTipImage.Height + 2;
-                e.ToolTipSize = new Size(wid, hgt);
+                lines = lines.GetRange(0, height);
+                lines.Add("...");
             }
-        }
 
-        internal void setPlaceholder()
+            for (int i = 0; i < lines.Count; i++)
+            {
+                string line = lines[i];
+                if (line == null) continue;
+                if (line.Length > width)
+                {
+                    if (showLineBegin) lines[i] = line.Substring(0, width) + "...";
+                    else lines[i] = "..." + line.Substring(line.Length - width, width);
+                }
+                else
+                {
+                    lines[i] += line;
+                }
+            }
+            return string.Join("\n", lines);
+        }
+        
+        private string CreatePreviewString(string str, int length, bool showLineStart)
         {
-            data = null;
-            hashs = null;
-            dataSize = 0;
-            this.ForeColor = SystemColors.GrayText;
-            placeHolder = true;
+            string[] lines = str.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length > 0)
+            {
+                string preview = lines[0].Trim();
+                if (preview.Length > length)
+                {
+                    preview = showLineStart
+                        ? preview.Substring(0, length) + "..."
+                        : "..." + preview.Substring(preview.Length - length, length);
+                }
+                return preview;
+            }
+            return null;
         }
 
         #endregion

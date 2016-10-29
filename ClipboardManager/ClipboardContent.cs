@@ -1,216 +1,78 @@
-﻿using ClipboardManager.Properties;
-using ClipboardManager.Util;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace ClipboardManager
 {
-    class ClipboardContent
+    public class ClipboardContent
     {
-        private Dictionary<string, object> data;
-        private Dictionary<string, string> hashs;
-        private long size;
+        private readonly string[] _textFormats = {DataFormats.StringFormat,DataFormats.UnicodeText,DataFormats.Text,DataFormats.OemText,DataFormats.Rtf,DataFormats.CommaSeparatedValue};
 
-        private int formats;
-        private string text;
-        private Image image;
-        private string toolTip;
-        private Image toolTipImage;
+        public Dictionary<string, string> Data { get; }
 
-        public Dictionary<string, object> Data { get { return data; } }
-        public Dictionary<string, string> Hashs { get { return hashs; } }
-        public long Size { get { return size; } }
-
-        public int Foramts { get { return formats; } }
-        public string Text { get { return text; } }
-        public Image Image { get { return image; } }
-        public string ToolTip { get { return toolTip; } }
-        public Image ToolTipImage { get { return toolTipImage; } }
-
-        public ClipboardContent(IDataObject iData)
+        public static ClipboardContent GetCurrentClipboardContent()
         {
-            createData(iData);
-            computeHashsAndSize();
-            computeItemData(iData);
+            ClipboardContent c = new ClipboardContent();
+            if (c.IsEmpty()) return null;
+            return c;
         }
 
-        private void createData(IDataObject iData)
+        private ClipboardContent()
         {
-            data = new Dictionary<string, object>();
-            foreach (string format in iData.GetFormats())
+            Data = new Dictionary<string, string>();
+            GetContent();
+        }
+
+        private void GetContent()
+        {
+            foreach (string textFormat in _textFormats)
             {
-                if (format != null
-                    && !DataFormats.MetafilePict.Equals(format)
-                    && !"Shell Object Offsets".Equals(format)
-                    && iData.GetDataPresent(format))
+                if (Clipboard.ContainsData(textFormat))
                 {
-                    try
+                    string text = Clipboard.GetData(textFormat) as string;
+                    Data.Add(textFormat, text);
+                }
+            }
+        }
+
+        public void Restore()
+        {
+            IDataObject iData = new DataObject();
+            if (!IsEmpty())
+            {
+                foreach (KeyValuePair<string, string> format in Data)
+                {
+                    if (format.Value != null)
                     {
-                        object o = iData.GetData(format);
-                        if (o != null) Data.Add(format, o);
-                    }
-                    catch { }
-                }
-            }
-        }
-
-        private void computeHashsAndSize()
-        {
-            if(data != null)
-            {
-                hashs = new Dictionary<string, string>();
-                size = 0;
-                foreach (KeyValuePair<string, object> entry in data)
-                {
-                    string format = entry.Key;
-                    object obj = entry.Value;
-                    if (format != null && obj != null) {
-                        byte[] serObj = ClipboardUtil.serializeObject(obj);
-                        if (serObj != null)
-                        {
-                            size += serObj.Length;
-                            string hash = ClipboardUtil.createMD5(serObj);
-                            if (hash != null) hashs.Add(format, hash);
-                        }
+                        iData.SetData(format.Key, format.Value);
                     }
                 }
-                if(data.Count != hashs.Count)
+                if (iData.GetFormats().Length > 0)
                 {
-                    data = null;
-                    hashs = null;
-                    size = 0;
+                    Clipboard.SetDataObject(iData);
                 }
             }
         }
 
-        private void computeItemData(IDataObject iData)
+        public bool IsEmpty()
         {
-            if(iData != null)
-            {
-                formats = ClipboardUtil.getClipboardFormats();
-
-                if (!ClipboardUtil.isSingleDataFormat(formats)) computeMultiData(iData);
-                else if (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Text)) computeTextData(iData);
-                else if (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Files)) computeFilesData(iData);
-                else if (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Images)) computeImagesData(iData);
-                else if (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Audio)) computeAudioData(iData);
-                else computeUnknownData(iData);
-            }
+            return Data == null ||  Data.Count == 0;
         }
 
-        private void computeMultiData(IDataObject iData)
+        public bool HasFormat(string format)
         {
-            text = ("Multiple Data: "
-                           + (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Text) ? "Text" : "") + " | "
-                           + (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Files) ? "Files/Folders" : "") + " | "
-                           + (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Images) ? "Image" : "") + " | "
-                           + (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Audio) ? "Audio Data" : "") + " | "
-                           + (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Unknown) ? "Unknown Data" : "")
-                           ).TrimEnd(new char[] { ' ', '|' });
-            image = Resources.multi;
-            if (ClipboardUtil.containsClipboardDataFormat(formats, ClipboardUtil.ClipboardDataFormat.Images))
-            {
-                Image originalImage = null;
-                if (iData.GetDataPresent(DataFormats.Dib))
-                {
-                    object dibData = iData.GetData(DataFormats.Dib);
-                    if (dibData != null && dibData is MemoryStream)
-                    {
-                        MemoryStream dibStream = (MemoryStream)iData.GetData(DataFormats.Dib);
-                        originalImage = ImageUtil.BitmapFromDIB(dibStream);
-                    }
-                }
-                if (originalImage == null) originalImage = Clipboard.GetImage();
-                if (originalImage != null) toolTipImage = ImageUtil.scaleImage(originalImage, ImageUtil.maxImg, ImageUtil.maxImg);
-            }
-            else if (iData.GetDataPresent(DataFormats.Text))
-            {
-                string data = iData.GetData(DataFormats.Text) as string;
-                string[] split = data.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
-                toolTip = ContextUtil.createToolTip(split, 50, 20, true);
-            }
-            else if (iData.GetDataPresent(DataFormats.FileDrop))
-            {
-                string[] files = iData.GetData(DataFormats.FileDrop) as string[];
-                toolTip = ContextUtil.createToolTip(files, 50, 20, false);
-            }
+            return Data.ContainsKey(format);
         }
 
-        private void computeTextData(IDataObject iData)
+        public bool IsDuplicate(ClipboardContent posDup)
         {
-            if (iData.GetDataPresent(DataFormats.Text))
+            if (posDup == null) return false;
+            if (Data.Except(posDup.Data).Concat(posDup.Data.Except(Data)).Any())
             {
-                string data = iData.GetData(DataFormats.Text) as string;
-                if (data != null)
-                {
-                    string preview = ContextUtil.getStringPreview(data, 50, true);
-                    if (preview != null) text = preview;
-                    string[] split = data.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
-                    toolTip = ContextUtil.createToolTip(split, 50, 20, true);
-                }
+                return false;
             }
-            if (text == null) text = "Text";
-            image = Resources.txt;
-        }
-
-        private void computeFilesData(IDataObject iData)
-        {
-            if (iData.GetDataPresent(DataFormats.FileDrop))
-            {
-                string[] files = iData.GetData(DataFormats.FileDrop) as string[];
-                if (files.Length > 0)
-                {
-                    if (files.Length == 1) text = ContextUtil.getStringPreview(files[0], 50, false);
-                    else text = files.Length + " Files/Folders";
-                }
-                toolTip = ContextUtil.createToolTip(files, 50, 20, false);
-            }
-            if (text == null) text = "Files/Folders";
-            image = Resources.fileFolder;
-        }
-
-        private void computeImagesData(IDataObject iData)
-        {
-            Image originalImage = null;
-            if (iData.GetDataPresent(DataFormats.Dib))
-            {
-                object dibData = iData.GetData(DataFormats.Dib);
-                if (dibData != null && dibData is MemoryStream)
-                {
-                    MemoryStream dibStream = (MemoryStream)iData.GetData(DataFormats.Dib);
-                    originalImage = ImageUtil.BitmapFromDIB(dibStream);
-                }
-            }
-            if (originalImage == null) originalImage = Clipboard.GetImage();
-            if (originalImage != null)
-            {
-                image = ImageUtil.scaleImage(originalImage, 16, 16);
-                toolTipImage = ImageUtil.scaleImage(originalImage, ImageUtil.maxImg, ImageUtil.maxImg);
-                if (image != null) text = "Image - " + originalImage.Width + " x " + originalImage.Height + " " + originalImage.PixelFormat;
-            }
-            if (text == null) text = "Image";
-            if (image == null) image = Resources.image;
-            toolTip = "Image";
-        }
-
-        private void computeAudioData(IDataObject iData)
-        {
-            text = "Audio Data";
-            image = Resources.speaker;
-        }
-
-        private void computeUnknownData(IDataObject iData)
-        {
-            text = "Unknown Data";
-            image = Resources.help;
-        }
-
-        public bool isEmpty()
-        {
-            return !(data != null && hashs != null && data.Count > 0);
+            return true;
         }
     }
 }

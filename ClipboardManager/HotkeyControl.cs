@@ -11,23 +11,23 @@ namespace ClipboardManager
 
         // ArrayLists used to enforce the use of proper modifiers.
         // Shift+A isn't a valid hotkey, for instance, as it would screw up when the user is typing.
-        private ArrayList needNonShiftModifier = null;
-        private ArrayList needNonAltGrModifier = null;
+        private readonly ArrayList _needNonShiftModifier;
+        private readonly ArrayList _needNonAltGrModifier;
 
-        private ContextMenu dummy = new ContextMenu();
+        private readonly ContextMenu _dummy = new ContextMenu();
 
         /// <summary>
         /// Used to make sure that there is no right-click menu available
         /// </summary>
-        public override ContextMenu ContextMenu
+        public sealed override ContextMenu ContextMenu
         {
             get
             {
-                return dummy;
+                return _dummy;
             }
             set
             {
-                base.ContextMenu = dummy;
+                base.ContextMenu = _dummy;
             }
         }
 
@@ -52,18 +52,24 @@ namespace ClipboardManager
         /// </summary>
         public HotkeyControl()
         {
-            this.ContextMenu = dummy; // Disable right-clicking
-            this.Text = "None";
+            ContextMenu = _dummy; // Disable right-clicking
+            Text = @"None";
 
             // Handle events that occurs when keys are pressed
-            this.KeyPress += new KeyPressEventHandler(HotkeyControl_KeyPress);
-            this.KeyUp += new KeyEventHandler(HotkeyControl_KeyUp);
-            this.KeyDown += new KeyEventHandler(HotkeyControl_KeyDown);
+            KeyPress += HotkeyControl_KeyPress;
+            KeyUp += HotkeyControl_KeyUp;
+            KeyDown += HotkeyControl_KeyDown;
 
             // Fill the ArrayLists that contain all invalid hotkey combinations
-            needNonShiftModifier = new ArrayList();
-            needNonAltGrModifier = new ArrayList();
+            _needNonShiftModifier = new ArrayList();
+            _needNonAltGrModifier = new ArrayList();
             PopulateModifierLists();
+        }
+
+        public sealed override string Text
+        {
+            get { return base.Text; }
+            set { base.Text = value; }
         }
 
         /// <summary>
@@ -74,37 +80,37 @@ namespace ClipboardManager
         {
             // Shift + 0 - 9, A - Z
             for (Keys k = Keys.D0; k <= Keys.Z; k++)
-                needNonShiftModifier.Add((int)k);
+                _needNonShiftModifier.Add((int)k);
 
             // Shift + Numpad keys
             for (Keys k = Keys.NumPad0; k <= Keys.NumPad9; k++)
-                needNonShiftModifier.Add((int)k);
+                _needNonShiftModifier.Add((int)k);
 
             // Shift + Misc (,;<./ etc)
             for (Keys k = Keys.Oem1; k <= Keys.OemBackslash; k++)
-                needNonShiftModifier.Add((int)k);
+                _needNonShiftModifier.Add((int)k);
 
             // Shift + Space, PgUp, PgDn, End, Home
             for (Keys k = Keys.Space; k <= Keys.Home; k++)
-                needNonShiftModifier.Add((int)k);
+                _needNonShiftModifier.Add((int)k);
 
             // Misc keys that we can't loop through
-            needNonShiftModifier.Add((int)Keys.Insert);
-            needNonShiftModifier.Add((int)Keys.Help);
-            needNonShiftModifier.Add((int)Keys.Multiply);
-            needNonShiftModifier.Add((int)Keys.Add);
-            needNonShiftModifier.Add((int)Keys.Subtract);
-            needNonShiftModifier.Add((int)Keys.Divide);
-            needNonShiftModifier.Add((int)Keys.Decimal);
-            needNonShiftModifier.Add((int)Keys.Return);
-            needNonShiftModifier.Add((int)Keys.Escape);
-            needNonShiftModifier.Add((int)Keys.NumLock);
-            needNonShiftModifier.Add((int)Keys.Scroll);
-            needNonShiftModifier.Add((int)Keys.Pause);
+            _needNonShiftModifier.Add((int)Keys.Insert);
+            _needNonShiftModifier.Add((int)Keys.Help);
+            _needNonShiftModifier.Add((int)Keys.Multiply);
+            _needNonShiftModifier.Add((int)Keys.Add);
+            _needNonShiftModifier.Add((int)Keys.Subtract);
+            _needNonShiftModifier.Add((int)Keys.Divide);
+            _needNonShiftModifier.Add((int)Keys.Decimal);
+            _needNonShiftModifier.Add((int)Keys.Return);
+            _needNonShiftModifier.Add((int)Keys.Escape);
+            _needNonShiftModifier.Add((int)Keys.NumLock);
+            _needNonShiftModifier.Add((int)Keys.Scroll);
+            _needNonShiftModifier.Add((int)Keys.Pause);
 
             // Ctrl+Alt + 0 - 9
             for (Keys k = Keys.D0; k <= Keys.D9; k++)
-                needNonAltGrModifier.Add((int)k);
+                _needNonAltGrModifier.Add((int)k);
         }
 
         /// <summary>
@@ -112,15 +118,15 @@ namespace ClipboardManager
         /// </summary>
         public new void Clear()
         {
-            this.Hotkey = Keys.None;
-            this.HotkeyModifiers = Keys.None;
+            Hotkey = Keys.None;
+            HotkeyModifiers = Keys.None;
         }
 
         /// <summary>
         /// Fires when a key is pushed down. Here, we'll want to update the text in the box
         /// to notify the user what combination is currently pressed.
         /// </summary>
-        void HotkeyControl_KeyDown(object sender, KeyEventArgs e)
+        private void HotkeyControl_KeyDown(object sender, KeyEventArgs e)
         {
             // Clear the current hotkey
             if (e.KeyCode == Keys.Back || e.KeyCode == Keys.Delete)
@@ -128,24 +134,20 @@ namespace ClipboardManager
                 ResetHotkey();
                 return;
             }
-            else
-            {
-                this._modifiers = e.Modifiers;
-                this._hotkey = e.KeyCode;
-                Redraw();
-            }
+            _modifiers = e.Modifiers;
+            _hotkey = e.KeyCode;
+            Redraw();
         }
 
         /// <summary>
         /// Fires when all keys are released. If the current hotkey isn't valid, reset it.
         /// Otherwise, do nothing and keep the text and hotkey as it was.
         /// </summary>
-        void HotkeyControl_KeyUp(object sender, KeyEventArgs e)
+        private void HotkeyControl_KeyUp(object sender, KeyEventArgs e)
         {
-            if (this._hotkey == Keys.None && Control.ModifierKeys == Keys.None)
+            if (_hotkey == Keys.None && ModifierKeys == Keys.None)
             {
                 ResetHotkey();
-                return;
             }
         }
 
@@ -153,7 +155,7 @@ namespace ClipboardManager
         /// Prevents the letter/whatever entered to show up in the TextBox
         /// Without this, a "A" key press would appear as "aControl, Alt + A"
         /// </summary>
-        void HotkeyControl_KeyPress(object sender, KeyPressEventArgs e)
+        private void HotkeyControl_KeyPress(object sender, KeyPressEventArgs e)
         {
             e.Handled = true;
         }
@@ -181,8 +183,8 @@ namespace ClipboardManager
         /// </summary>
         public void ResetHotkey()
         {
-            this._hotkey = Keys.None;
-            this._modifiers = Keys.None;
+            _hotkey = Keys.None;
+            _modifiers = Keys.None;
             Redraw();
         }
 
@@ -193,11 +195,11 @@ namespace ClipboardManager
         {
             get
             {
-                return this._hotkey;
+                return _hotkey;
             }
             set
             {
-                this._hotkey = value;
+                _hotkey = value;
                 Redraw(true);
             }
         }
@@ -209,40 +211,32 @@ namespace ClipboardManager
         {
             get
             {
-                return this._modifiers;
+                return _modifiers;
             }
             set
             {
-                this._modifiers = value;
+                _modifiers = value;
                 Redraw(true);
             }
-        }
-
-        /// <summary>
-        /// Helper function
-        /// </summary>
-        private void Redraw()
-        {
-            Redraw(false);
         }
 
         /// <summary>
         /// Redraws the TextBox when necessary.
         /// </summary>
         /// <param name="bCalledProgramatically">Specifies whether this function was called by the Hotkey/HotkeyModifiers properties or by the user.</param>
-        private void Redraw(bool bCalledProgramatically)
+        private void Redraw(bool bCalledProgramatically = false)
         {
             // No hotkey set
-            if (this._hotkey == Keys.None)
+            if (_hotkey == Keys.None)
             {
-                this.Text = "None";
+                Text = @"None";
                 return;
             }
 
             // LWin/RWin doesn't work as hotkeys (neither do they work as modifier keys in .NET 2.0)
-            if (this._hotkey == Keys.LWin || this._hotkey == Keys.RWin)
+            if (_hotkey == Keys.LWin || _hotkey == Keys.RWin)
             {
-                this.Text = "None";
+                Text = @"None";
                 return;
             }
 
@@ -250,14 +244,13 @@ namespace ClipboardManager
             if (bCalledProgramatically == false)
             {
                 // No modifier or shift only, AND a hotkey that needs another modifier
-                if ((this._modifiers == Keys.Shift || this._modifiers == Keys.None) &&
-                this.needNonShiftModifier.Contains((int)this._hotkey))
+                if ((_modifiers == Keys.Shift || _modifiers == Keys.None) &&
+                _needNonShiftModifier.Contains((int)_hotkey))
                 {
-                    if (this._modifiers == Keys.None)
+                    if (_modifiers == Keys.None)
                     {
-                        this._hotkey = Keys.None;
-                        this.Text = "Invalid key";
-                        return;
+                        _hotkey = Keys.None;
+                        Text = @"Invalid key";
                         //// Set Ctrl+Alt as the modifier unless Ctrl+Alt+<key> won't work...
                         //if (needNonAltGrModifier.Contains((int)this._hotkey) == false)
                         //    this._modifiers = Keys.Alt | Keys.Control;
@@ -268,43 +261,42 @@ namespace ClipboardManager
                     {
                         // User pressed Shift and an invalid key (e.g. a letter or a number),
                         // that needs another set of modifier keys
-                        this._hotkey = Keys.None;
-                        this.Text = this._modifiers.ToString().Replace(",", " +") + " + Invalid key";
-                        return;
+                        _hotkey = Keys.None;
+                        Text = _modifiers.ToString().Replace(",", " +") + @" + Invalid key";
                     }
+                    return;
                 }
                 // Check all Ctrl+Alt keys
-                if ((this._modifiers == (Keys.Alt | Keys.Control)) &&
-                    this.needNonAltGrModifier.Contains((int)this._hotkey))
+                if ((_modifiers == (Keys.Alt | Keys.Control)) &&
+                    _needNonAltGrModifier.Contains((int)_hotkey))
                 {
                     // Ctrl+Alt+4 etc won't work; reset hotkey and tell the user
-                    this._hotkey = Keys.None;
-                    this.Text = this._modifiers.ToString().Replace(",", " +") + " + Invalid key";
+                    _hotkey = Keys.None;
+                    Text = _modifiers.ToString().Replace(",", " +") + @" + Invalid key";
                     return;
                 }
             }
 
-            if (this._modifiers == Keys.None)
+            if (_modifiers == Keys.None)
             {
-                if (this._hotkey == Keys.None)
+                if (_hotkey == Keys.None)
                 {
-                    this.Text = "None";
-                    return;
+                    Text = @"None";
                 }
                 else
                 {
                     // We get here if we've got a hotkey that is valid without a modifier,
                     // like F1-F12, Media-keys etc.
-                    this.Text = this._hotkey.ToString();
-                    return;
+                    Text = _hotkey.ToString();
                 }
+                return;
             }
 
             // I have no idea why this is needed, but it is. Without this code, pressing only Ctrl
             // will show up as "Control + ControlKey", etc.
-            if (this._hotkey == Keys.Menu /* Alt */ || this._hotkey == Keys.ShiftKey || this._hotkey == Keys.ControlKey)
-                this._hotkey = Keys.None;
-            this.Text = this._modifiers.ToString().Replace(",", " +") + " + " + this._hotkey.ToString();
+            if (_hotkey == Keys.Menu /* Alt */ || _hotkey == Keys.ShiftKey || _hotkey == Keys.ControlKey)
+                _hotkey = Keys.None;
+            Text = _modifiers.ToString().Replace(",", " +") + @" + " + _hotkey.ToString();
         }
     }
 }

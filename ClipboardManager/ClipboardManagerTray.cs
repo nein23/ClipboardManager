@@ -1,158 +1,103 @@
 ﻿using ClipboardManager.Properties;
-using ClipboardManager.Util;
 using System;
+using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
 
 namespace ClipboardManager
 {
-    public partial class ClipboardManagerTray : Control
+    public sealed class ClipboardManagerTray : Control
     {
-        public static readonly string APPLICATION_NAME = "Clipboard Manager";
-
-        public static ToastForm Toast;
-
-        private NotifyIcon ni;
-        private Settings settings;
-        private ClipboardContextMenu leftContextMenu;
-        private readonly Timer clipboardChangedTimer = new Timer();
-        private bool pause = false;
-        private ToolStripMenuItem pauseItem;
+        public static readonly string ApplicationName = "Clipboard Manager";
+        
+        private NotifyIcon _ni;
+        private SettingsForm _settingsForm;
+        private ClipboardContextMenu _clipboardContextMenu;
+        private Point _menuMousePos;
 
         #region Init
 
         public ClipboardManagerTray()
         {
-            init();
-            initNotifyIcon();
-            initContextMenus();
-            initClipboardHook();
-            HandleUpdate(false);
+            Name = ApplicationName;
+            Visible = false;
+
+            Settings.Load();
+
+            InitNotifyIcon();
+
+            InitContextMenus();
+
+            ClipboardNotification.ClipboardUpdate += ClipboardNotification_ClipboardUpdate;
+            HotkeyNotification.RegisterHotkey();
+            HotkeyNotification.HotkeyPressed += HotkeyNotification_HotkeyPressed;
+            Settings.SettingsChanged += Settings_SettingsChanged;
         }
 
-        private void init()
+        private void InitNotifyIcon()
         {
-            this.Name = APPLICATION_NAME;
-            this.Visible = false;
-            settings = new Settings();
-
+            _ni = new NotifyIcon
+            {
+                Text = ApplicationName,
+                Icon = Resources.clipboard_0_32
+            };
+            _ni.MouseClick += ni_MouseClick;
+            _ni.Visible = true;
         }
 
-        private void initNotifyIcon()
+        private void InitContextMenus()
         {
-            ni = new NotifyIcon();
-            ni.Text = APPLICATION_NAME;
-            ni.Icon = Resources.clipboard_0_32;
-            ni.MouseClick += new MouseEventHandler(ni_MouseClick);
-            ni.Visible = true;
-        }
+            _clipboardContextMenu = new ClipboardContextMenu(Settings.MaxEntries);
+            _clipboardContextMenu.ContentChanged += _clipboardContextMenu_ContentChanged;
+            _clipboardContextMenu.RequestReopen += _clipboardContextMenu_RequestReopen;
 
-        private void initContextMenus()
-        {
-            leftContextMenu = new ClipboardContextMenu(ni, settings);
-
-            ContextMenuStrip rightContextMenu = new ContextMenuStrip();
-            ToolStripMenuItem item = new ToolStripMenuItem();
-            item.Text = "Clear all";
-            item.Image = Resources.clipboardEmpty;
+            ContextMenuStrip optionsContextMenu = new ContextMenuStrip();
+            ToolStripMenuItem item = new ToolStripMenuItem
+            {
+                Text = @"Clear",
+                Image = Resources.clipboardEmpty
+            };
             item.Click += clearAll_Click;
-            rightContextMenu.Items.Add(item);
-            pauseItem = new ToolStripMenuItem();
-            pauseItem.Text = "Pause";
-            pauseItem.Image = Resources.pause;
-            pauseItem.Click += pause_Click;
-            rightContextMenu.Items.Add(pauseItem);
-            item = new ToolStripMenuItem();
-            item.Text = "Settings";
-            item.Image = Resources.settings;
+            optionsContextMenu.Items.Add(item);
+
+            item = new ToolStripMenuItem
+            {
+                Text = @"Settings",
+                Image = Resources.settings
+            };
             item.Click += settings_Click;
-            rightContextMenu.Items.Add(item);
-            item = new ToolStripMenuItem();
-            item.Text = "Check for updates";
-            item.Image = Resources.refresh;
-            item.Click += update_Click;
-            rightContextMenu.Items.Add(item);
-            item = new ToolStripMenuItem();
-            item.Text = "About";
-            item.Image = Resources.info;
-            item.Click += about_Click;
-            rightContextMenu.Items.Add(item);
-            item = new ToolStripMenuItem();
-            item.Text = "Exit";
-            item.Image = Resources.exit;
+            optionsContextMenu.Items.Add(item);
+
+            item = new ToolStripMenuItem
+            {
+                Text = @"Exit",
+                Image = Resources.exit
+            };
             item.Click += exit_Click;
-            rightContextMenu.Items.Add(item);
+            optionsContextMenu.Items.Add(item);
 
-            ni.ContextMenuStrip = rightContextMenu;
-        }
-
-        private void initClipboardHook()
-        {
-            clipboardChangedTimer.Interval = 100;
-            clipboardChangedTimer.Tick += clipboardChangedTimer_Tick;
-            this.CreateHandle();
+            _ni.ContextMenuStrip = optionsContextMenu;
+            _clipboardContextMenu.AddCurrentClipboard();
         }
 
         #endregion
 
         #region Methods
 
-        protected override void OnHandleCreated(EventArgs e)
+        private void OpenLeftClickContextMenu()
         {
-            base.OnHandleCreated(e);
-
-            ClipboardUtil.RemoveClipboardFormatListener(this.Handle);
-            ClipboardUtil.AddClipboardFormatListener(this.Handle);
-
-            HotkeyUtil.RegisterAllHotkeys(this.Handle, settings.Hotkeys);
-        }
-
-        protected override void OnHandleDestroyed(EventArgs e)
-        {
-            ClipboardUtil.RemoveClipboardFormatListener(this.Handle);
-            HotkeyUtil.UnregisterAllHotKeys(this.Handle, settings.Hotkeys.Count);
-            base.OnHandleDestroyed(e);
+            _menuMousePos = Cursor.Position;
+            ContextMenuStrip rightContextMenu = _ni.ContextMenuStrip;
+            _ni.ContextMenuStrip = _clipboardContextMenu;
+            MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
+            mi.Invoke(_ni, null);
+            _ni.ContextMenuStrip = rightContextMenu;
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (clipboardChangedTimer != null) clipboardChangedTimer.Stop();
-            ni.Dispose();
+            _ni.Dispose();
             base.Dispose(disposing);
-        }
-
-        protected override void WndProc(ref Message m)
-        {
-            const int WM_CLIPBOARDUPDATE = 0x031D;
-            const int WM_HOTKEY = 0x0312;
-
-            switch (m.Msg)
-            {
-
-                case WM_CLIPBOARDUPDATE:
-                    if (!pause && !clipboardChangedTimer.Enabled) clipboardChangedTimer.Start();
-                    break;
-
-                case WM_HOTKEY:
-                    switch (m.WParam.ToInt32())
-                    {
-                        case 0:
-                            HandleOpenContextMenu();
-                            break;
-                        case 1:
-                            HandlePause();
-                            break;
-                        case 2:
-                            HandleClear();
-                            break;
-                    }
-                    break;
-
-
-                default:
-                    base.WndProc(ref m);
-                    break;
-            }
         }
 
         #endregion
@@ -163,108 +108,69 @@ namespace ClipboardManager
         {
             if (e.Button == MouseButtons.Left)
             {
-                HandleOpenContextMenu();
+                OpenLeftClickContextMenu();
             }
         }
 
-        private void clipboardChangedTimer_Tick(object sender, EventArgs e)
+        private void ClipboardNotification_ClipboardUpdate(object sender, EventArgs e)
         {
-            clipboardChangedTimer.Stop();
-            leftContextMenu.update();
+            _clipboardContextMenu.AddCurrentClipboard();
+        }
+
+        private void HotkeyNotification_HotkeyPressed(object sender, EventArgs e)
+        {
+            OpenLeftClickContextMenu();
+        }
+
+        private void Settings_SettingsChanged(object sender, EventArgs e)
+        {
+            HotkeyNotification.ResetHotkey();
+            _clipboardContextMenu.UpdateLength(Settings.MaxEntries);
+        }
+
+        private void _clipboardContextMenu_ContentChanged(object sender, EventArgs e)
+        {
+            int itemCount = _clipboardContextMenu.Length;
+            if (itemCount == 0)
+            {
+                _ni.Icon = Resources.clipboard_0_32;
+            }
+            else
+            {
+                int part = (int)Math.Round(Settings.MaxEntries/3.0);
+                if (itemCount  <= part) _ni.Icon = Resources.clipboard_1_32;
+                else if (itemCount <= 2*part) _ni.Icon = Resources.clipboard_2_32;
+                else _ni.Icon = Resources.clipboard_3_32;
+            }
+        }
+
+        private void _clipboardContextMenu_RequestReopen(object sender, EventArgs e)
+        {
+            Point cur = Cursor.Position;
+            Cursor.Position = _menuMousePos;
+            OpenLeftClickContextMenu();
+            Cursor.Position = cur;
         }
 
         private void clearAll_Click(object sender, EventArgs e)
         {
-            HandleClear();
-        }
-
-        private void pause_Click(object sender, EventArgs e)
-        {
-            HandlePause();
+            _clipboardContextMenu.ClearHistory();
         }
 
         private void settings_Click(object sender, EventArgs e)
         {
-            Form settingsForm = Application.OpenForms["SettingsForm"];
-            if (settingsForm == null)
+            if (_settingsForm == null || _settingsForm.IsDisposed)
             {
-                new SettingsForm(this.Handle, leftContextMenu, settings).Show();
+                _settingsForm = new SettingsForm();
+                _settingsForm.Show();
             }
-            else settingsForm.Focus();
-        }
-
-        private void update_Click(object sender, EventArgs e)
-        {
-            HandleUpdate(true);
-        }
-
-        private void about_Click(object sender, EventArgs e)
-        {
-            if(Toast != null)
-            {
-                Toast.Close();
-            }
-
-            Version version = Assembly.GetExecutingAssembly().GetName().Version;
-            string title = APPLICATION_NAME + " " + version.Major + "." + version.Minor;
-            string text = "Copyright \u00A9 2015 Stefan Käsdorf";
-
-            Toast = new ToastForm(title, text);
-            Toast.Show();
+            else _settingsForm.BringToFront();
         }
 
         private void exit_Click(object sender, EventArgs e)
         {
             if (Application.MessageLoop) Application.Exit();
             else Environment.Exit(1);
-        }
-
-        private void HandleOpenContextMenu()
-        {
-            ContextUtil.openLeftClickContextMenu(ni, leftContextMenu);
-        }
-
-        private void HandlePause()
-        {
-            if (pauseItem != null)
-            {
-                if (pause)
-                {
-                    pause = false;
-                    pauseItem.Text = "Pause";
-                    pauseItem.Image = Resources.pause;
-                }
-                else
-                {
-                    pause = true;
-                    pauseItem.Text = "Continue";
-                    pauseItem.Image = Resources.play;
-                }
-            }
-        }
-
-        private void HandleClear()
-        {
-            bool p = !pause;
-            if (p)  HandlePause();
-            Clipboard.Clear();
-            if (p) HandlePause();
-            leftContextMenu.clearHistory();
-        }
-
-        private void HandleUpdate(bool showAll)
-        {
-            if (Toast != null)
-            {
-                Toast.Close();
-            }
-            Updater updater = new Updater();
-            updater.checkForUpdate();
-            if (showAll || updater.UpdateAvailable)
-            {
-                Toast = new ToastForm(updater);
-                Toast.Show();
-            }
         }
 
         #endregion
